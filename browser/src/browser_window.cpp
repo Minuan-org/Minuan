@@ -17,6 +17,9 @@ BrowserWindow::~BrowserWindow() {
     if (webview_) {
         ((ICoreWebView2Controller*)webview_)->Close();
     }
+    if (sunay_) {
+        sunay_->shutdown();
+    }
 }
 
 bool BrowserWindow::create() {
@@ -48,6 +51,18 @@ bool BrowserWindow::create() {
     }
 
     native_window_handle_ = hwnd;
+
+    // Initialize Sunay (Browser Engine)
+    sunay_ = Sunay::Engine::create();
+    sunay_->initialize(hwnd);
+
+    // Initial UI state
+    ui_state_.tabs.push_back({ "New Tab", "about:blank", true });
+    ui_state_.addressBarText = "about:blank";
+    ui_state_.isLoading = false;
+
+    // Render browser chrome
+    sunay_->render(ui_state_);
 
     ShowWindow(hwnd, SW_SHOW);
 
@@ -82,6 +97,9 @@ bool BrowserWindow::initWebView() {
 
                             webview_ = controller;
 
+                            // Store controller pointer for WindowProc
+                            SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)controller);
+
                             ICoreWebView2* webview;
                             controller->get_CoreWebView2(&webview);
 
@@ -103,9 +121,16 @@ bool BrowserWindow::initWebView() {
 }
 
 void BrowserWindow::navigateToHtml6(const std::string& path) {
+    // Update Sunay UI state
+    ui_state_.addressBarText = path;
+    ui_state_.isLoading = true;
+    sunay_->render(ui_state_);
+
     std::ifstream in(path);
     if (!in) {
         Utils::logError("Failed to open HTML6 file: " + path);
+        ui_state_.isLoading = false;
+        sunay_->render(ui_state_);
         return;
     }
 
@@ -116,6 +141,8 @@ void BrowserWindow::navigateToHtml6(const std::string& path) {
     Minuan::HTML6::HTML6Engine engine;
     if (!engine.parseDocument(html6)) {
         Utils::logError("HTML6 parse failed");
+        ui_state_.isLoading = false;
+        sunay_->render(ui_state_);
         return;
     }
 
@@ -123,6 +150,10 @@ void BrowserWindow::navigateToHtml6(const std::string& path) {
     std::string html5 = processor.transformToHTML5(engine.getAST());
 
     loadHtml5IntoWebView(html5);
+
+    // Done loading
+    ui_state_.isLoading = false;
+    sunay_->render(ui_state_);
 }
 
 void BrowserWindow::loadHtml5IntoWebView(const std::string& html5) {
@@ -141,9 +172,12 @@ void BrowserWindow::loadHtml5IntoWebView(const std::string& html5) {
 
 static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
+
         case WM_SIZE: {
-            ICoreWebView2Controller* controller = nullptr;
-            GetWindowLongPtr(hwnd, GWLP_USERDATA);
+            ICoreWebView2Controller* controller =
+                reinterpret_cast<ICoreWebView2Controller*>(
+                    GetWindowLongPtr(hwnd, GWLP_USERDATA)
+                );
 
             if (controller) {
                 RECT bounds;
