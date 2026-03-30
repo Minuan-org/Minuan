@@ -1,6 +1,8 @@
 #pragma once
 
 #include <string>
+#include <memory>
+#include "sunay.hpp"   // Sunay lives in its own repo, Minuan depends on it
 
 class BrowserWindow {
 public:
@@ -17,4 +19,8 @@ private:
 
     void* native_window_handle_ = nullptr;
     void* webview_ = nullptr;
+
+    // Sunay browser engine (browser renderer)
+    std::unique_ptr<Sunay::Engine> sunay_;
+    Sunay::BrowserUIState ui_state_;
 };
