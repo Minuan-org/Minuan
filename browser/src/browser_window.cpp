@@ -1,3 +1,4 @@
+// browser/src/browser_window.cpp
 #include "browser_window.hpp"
 #include "html6_engine.hpp"
 #include "dom_processor.hpp"
