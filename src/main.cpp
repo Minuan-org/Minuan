@@ -16,6 +16,9 @@ public:
         setWindowTitle("Minuan Browser");
         resize(1024, 768);
     }
+
+    void run(QApplication &app) { app.exec(); }
+    void run(QApplication &app) { app.exec(); }
 };
 
 int main(int argc, char *argv[])
@@ -23,5 +26,6 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     BrowserWindow window;
     window.show();
-    return app.exec();
+    window.run(app);
+    return 0;
 }
