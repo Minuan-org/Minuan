@@ -17,6 +17,8 @@ public:
 private:
     bool initWebView();
     void loadHtml5IntoWebView(const std::string& html5);
+    void loadWebsitesJson(); // load websites.json and store first URL
+    std::string first_url_; // first URL from websites.json
 
     void* native_window_handle_ = nullptr;
     void* webview_ = nullptr;
