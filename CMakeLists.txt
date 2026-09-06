@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(browser
+project(MinuanBrowser
     VERSION 1.0
     DESCRIPTION "Minuan - C++ Browser for SimVerse"
     LANGUAGES CXX
