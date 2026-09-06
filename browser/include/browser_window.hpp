@@ -15,6 +15,7 @@ public:
     bool create();
     void show();
     void navigateToHtml6(const std::string& path);
+    bool loadWebsites();
 
 private:
     bool initWebView();

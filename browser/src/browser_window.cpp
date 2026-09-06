@@ -10,23 +10,12 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <sstream>
-static std::string first_site_;
+
 
 static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 BrowserWindow::BrowserWindow() {
-    std::ifstream config_file("config.json");
-    if (!config_file) {
-        Utils::logError("Failed to open config.json");
-        return;
-    }
-    nlohmann::json j;
-    config_file >> j;
-    if (j.is_array() && !j.empty()) {
-        first_site_ = j[0].get<std::string>();
-    } else {
-        Utils::logError("Config JSON is empty or not array");
-    }
+    loadWebsites();
 }
 
 BrowserWindow::~BrowserWindow() {
@@ -35,6 +24,21 @@ BrowserWindow::~BrowserWindow() {
     }
     if (sunay_) {
         sunay_->shutdown();
+    }
+}
+
+void BrowserWindow::loadWebsites() {
+    std::ifstream config_file("config.json");
+    if (!config_file) {
+        Utils::logError("Failed to open config.json");
+        return;
+    }
+    nlohmann::json j;
+    config_file >> j;
+    if (j.is_array() && !j.empty()) {
+        first_url_ = j[0].get<std::string>();
+    } else {
+        Utils::logError("Config JSON is empty or not array");
     }
 }
 
@@ -94,12 +98,12 @@ void BrowserWindow::show() {
 }
 bool BrowserWindow::run() {
     if (!create()) return false;
-    if (!first_site_.empty()) {
+    if (!first_url_.empty()) {
         ICoreWebView2Controller* controller = (ICoreWebView2Controller*)webview_;
         if (controller) {
             ICoreWebView2* webview;
             controller->get_CoreWebView2(&webview);
-            std::wstring wurl(first_site_.begin(), first_site_.end());
+            std::wstring wurl(first_url_.begin(), first_url_.end());
             webview->Navigate(wurl.c_str());
         }
     }
