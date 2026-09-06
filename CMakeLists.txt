@@ -9,7 +9,7 @@ project(MinuanBrowser
 # -----------------------------
 # C++ Standard
 # -----------------------------
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # -----------------------------
@@ -33,13 +33,22 @@ file(GLOB_RECURSE MINUAN_SOURCES
 # Create executable
 # -----------------------------
 add_executable(minuan ${MINUAN_SOURCES})
+add_custom_command(TARGET minuan POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    ${CMAKE_SOURCE_DIR}/websites.json $<TARGET_FILE_DIR:minuan>)
+add_executable(browser ${MINUAN_SOURCES})
+add_custom_command(TARGET browser POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    ${CMAKE_SOURCE_DIR}/websites.json $<TARGET_FILE_DIR:browser>)
 
 # -----------------------------
 # Windows: WebView2 support
 # -----------------------------
 if (WIN32)
     target_link_libraries(minuan PRIVATE WebView2Loader)
+target_link_libraries(browser PRIVATE WebView2Loader)
     target_compile_definitions(minuan PRIVATE MINUAN_WINDOWS)
+target_compile_definitions(browser PRIVATE MINUAN_WINDOWS)
 endif()
 
 # -----------------------------
@@ -51,7 +60,9 @@ if (UNIX AND NOT APPLE)
     include_directories(${GTK3_INCLUDE_DIRS})
     link_directories(${GTK3_LIBRARY_DIRS})
     target_link_libraries(minuan PRIVATE ${GTK3_LIBRARIES})
+target_link_libraries(browser PRIVATE ${GTK3_LIBRARIES})
     target_compile_definitions(minuan PRIVATE MINUAN_LINUX)
+target_compile_definitions(browser PRIVATE MINUAN_LINUX)
 endif()
 
 # -----------------------------
@@ -61,5 +72,7 @@ if (APPLE)
     find_library(COCOA_LIBRARY Cocoa REQUIRED)
     find_library(WEBKIT_LIBRARY WebKit REQUIRED)
     target_link_libraries(minuan PRIVATE ${COCOA_LIBRARY} ${WEBKIT_LIBRARY})
+target_link_libraries(browser PRIVATE ${COCOA_LIBRARY} ${WEBKIT_LIBRARY})
     target_compile_definitions(minuan PRIVATE MINUAN_MACOS)
+target_compile_definitions(browser PRIVATE MINUAN_MACOS)
 endif()
