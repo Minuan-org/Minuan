@@ -6,6 +6,9 @@ project(MinuanBrowser
     LANGUAGES CXX
 )
 
+# Specify the generator and platform
+set(CMAKE_GENERATOR "Visual Studio 16 2019 Win64")
+
 # -----------------------------
 # C++ Standard
 # -----------------------------
@@ -32,23 +35,18 @@ file(GLOB_RECURSE MINUAN_SOURCES
 # -----------------------------
 # Create executable
 # -----------------------------
-add_executable(minuan ${MINUAN_SOURCES})
-add_custom_command(TARGET minuan POST_BUILD
+add_executable(MinuanBrowser ${MINUAN_SOURCES})
+add_custom_command(TARGET MinuanBrowser POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    ${CMAKE_SOURCE_DIR}/websites.json $<TARGET_FILE_DIR:minuan>)
-add_executable(browser ${MINUAN_SOURCES})
-add_custom_command(TARGET browser POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    ${CMAKE_SOURCE_DIR}/websites.json $<TARGET_FILE_DIR:browser>)
+    ${CMAKE_SOURCE_DIR}/websites.json $<TARGET_FILE_DIR:MinuanBrowser>)
+
 
 # -----------------------------
 # Windows: WebView2 support
 # -----------------------------
 if (WIN32)
-    target_link_libraries(minuan PRIVATE WebView2Loader)
-target_link_libraries(browser PRIVATE WebView2Loader)
-    target_compile_definitions(minuan PRIVATE MINUAN_WINDOWS)
-target_compile_definitions(browser PRIVATE MINUAN_WINDOWS)
+    target_link_libraries(MinuanBrowser PRIVATE WebView2Loader)
+    target_compile_definitions(MinuanBrowser PRIVATE MINUAN_WINDOWS)
 endif()
 
 # -----------------------------
@@ -59,10 +57,8 @@ if (UNIX AND NOT APPLE)
     pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
     include_directories(${GTK3_INCLUDE_DIRS})
     link_directories(${GTK3_LIBRARY_DIRS})
-    target_link_libraries(minuan PRIVATE ${GTK3_LIBRARIES})
-target_link_libraries(browser PRIVATE ${GTK3_LIBRARIES})
-    target_compile_definitions(minuan PRIVATE MINUAN_LINUX)
-target_compile_definitions(browser PRIVATE MINUAN_LINUX)
+    target_link_libraries(MinuanBrowser PRIVATE ${GTK3_LIBRARIES})
+    target_compile_definitions(MinuanBrowser PRIVATE MINUAN_LINUX)
 endif()
 
 # -----------------------------
@@ -71,8 +67,6 @@ endif()
 if (APPLE)
     find_library(COCOA_LIBRARY Cocoa REQUIRED)
     find_library(WEBKIT_LIBRARY WebKit REQUIRED)
-    target_link_libraries(minuan PRIVATE ${COCOA_LIBRARY} ${WEBKIT_LIBRARY})
-target_link_libraries(browser PRIVATE ${COCOA_LIBRARY} ${WEBKIT_LIBRARY})
-    target_compile_definitions(minuan PRIVATE MINUAN_MACOS)
-target_compile_definitions(browser PRIVATE MINUAN_MACOS)
+    target_link_libraries(MinuanBrowser PRIVATE ${COCOA_LIBRARY} ${WEBKIT_LIBRARY})
+    target_compile_definitions(MinuanBrowser PRIVATE MINUAN_MACOS)
 endif()
