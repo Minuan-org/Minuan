@@ -18,7 +18,6 @@ public:
     }
 
     void run(QApplication &app) { app.exec(); }
-    void run(QApplication &app) { app.exec(); }
 };
 
 int main(int argc, char *argv[])
