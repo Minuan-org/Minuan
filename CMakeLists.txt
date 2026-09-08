@@ -29,6 +29,7 @@ include_directories(
 # -----------------------------
 file(GLOB_RECURSE MINUAN_SOURCES
     "browser/*.cpp"
+    "browser/BrowserWindow.cpp"
     "src/*.cpp"
 )
 
