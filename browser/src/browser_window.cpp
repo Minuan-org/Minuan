@@ -10,6 +10,7 @@
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <sstream>
+static std::string first_url_;
 
 
 static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);

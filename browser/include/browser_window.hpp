@@ -14,6 +14,7 @@ public:
 
     bool create();
     void show();
+    void run(); // Run the browser and display first URL
     void navigateToHtml6(const std::string& path);
     bool loadWebsites();
 
