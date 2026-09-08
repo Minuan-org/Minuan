@@ -1,27 +1,7 @@
 [
-  {
-    "name": "Google",
-    "url": "https://www.google.com",
-    "description": "Search engine for the web."
-  },
-  {
-    "name": "GitHub",
-    "url": "https://github.com",
-    "description": "Platform for hosting and collaborating on code."
-  },
-  {
-    "name": "MDN Web Docs",
-    "url": "https://developer.mozilla.org",
-    "description": "Comprehensive resource for web developers."
-  },
-  {
-    "name": "Stack Overflow",
-    "url": "https://stackoverflow.com",
-    "description": "Community-driven Q&A for programmers."
-  },
-  {
-    "name": "Reddit",
-    "url": "https://www.reddit.com",
-    "description": "Social news aggregation and discussion platform."
-  }
+  "https://www.google.com",
+  "https://github.com",
+  "https://developer.mozilla.org",
+  "https://stackoverflow.com",
+  "https://www.reddit.com"
 ]
