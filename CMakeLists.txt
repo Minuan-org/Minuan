@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.16)
 
 project(MinuanBrowser
     VERSION 1.0
@@ -6,68 +6,72 @@ project(MinuanBrowser
     LANGUAGES CXX
 )
 
-# Specify the generator and platform
-set(CMAKE_GENERATOR "Visual Studio 16 2019 Win64")
-
 # -----------------------------
 # C++ Standard
 # -----------------------------
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # -----------------------------
-# Include directories
+# Qt Core Settings
 # -----------------------------
-include_directories(
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
+
+# -----------------------------
+# Find Qt Packages
+# -----------------------------
+find_package(Qt6 COMPONENTS Widgets WebEngineWidgets QUIET)
+if (NOT Qt6_FOUND)
+    find_package(Qt5 COMPONENTS Widgets WebEngineWidgets REQUIRED)
+endif()
+
+# -----------------------------
+# Source Files
+# -----------------------------
+set(MINUAN_SOURCES
+    src/main.cpp
+    src/html6_engine.cpp
+    src/dom_processor.cpp
+    src/html6_validator.cpp
+    src/utils.cpp
+)
+
+# -----------------------------
+# Create Executable
+# -----------------------------
+add_executable(MinuanBrowser ${MINUAN_SOURCES})
+
+# -----------------------------
+# Include Directories
+# -----------------------------
+target_include_directories(MinuanBrowser PRIVATE
     ${PROJECT_SOURCE_DIR}/include
-    ${PROJECT_SOURCE_DIR}/browser
     ${PROJECT_SOURCE_DIR}/src
 )
 
 # -----------------------------
-# Source files
+# Link Qt Libraries
 # -----------------------------
-file(GLOB_RECURSE MINUAN_SOURCES
-    "browser/*.cpp"
-    "browser/BrowserWindow.cpp"
-    "src/*.cpp"
-)
-
-# -----------------------------
-# Create executable
-# -----------------------------
-add_executable(MinuanBrowser ${MINUAN_SOURCES})
-add_custom_command(TARGET MinuanBrowser POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-    ${CMAKE_SOURCE_DIR}/websites.json $<TARGET_FILE_DIR:MinuanBrowser>)
-
-
-# -----------------------------
-# Windows: WebView2 support
-# -----------------------------
-if (WIN32)
-    target_link_libraries(MinuanBrowser PRIVATE WebView2Loader)
-    target_compile_definitions(MinuanBrowser PRIVATE MINUAN_WINDOWS)
+if (Qt6_FOUND)
+    target_link_libraries(MinuanBrowser PRIVATE
+        Qt6::Widgets
+        Qt6::WebEngineWidgets
+    )
+else()
+    target_link_libraries(MinuanBrowser PRIVATE
+        Qt5::Widgets
+        Qt5::WebEngineWidgets
+    )
 endif()
 
 # -----------------------------
-# Linux: GTK3 support
+# Post-Build Assets
 # -----------------------------
-if (UNIX AND NOT APPLE)
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(GTK3 REQUIRED gtk+-3.0)
-    include_directories(${GTK3_INCLUDE_DIRS})
-    link_directories(${GTK3_LIBRARY_DIRS})
-    target_link_libraries(MinuanBrowser PRIVATE ${GTK3_LIBRARIES})
-    target_compile_definitions(MinuanBrowser PRIVATE MINUAN_LINUX)
-endif()
-
-# -----------------------------
-# macOS: Cocoa/WebKit support
-# -----------------------------
-if (APPLE)
-    find_library(COCOA_LIBRARY Cocoa REQUIRED)
-    find_library(WEBKIT_LIBRARY WebKit REQUIRED)
-    target_link_libraries(MinuanBrowser PRIVATE ${COCOA_LIBRARY} ${WEBKIT_LIBRARY})
-    target_compile_definitions(MinuanBrowser PRIVATE MINUAN_MACOS)
+if (EXISTS "${CMAKE_SOURCE_DIR}/websites.json")
+    add_custom_command(TARGET MinuanBrowser POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_SOURCE_DIR}/websites.json $<TARGET_FILE_DIR:MinuanBrowser>
+    )
 endif()
