@@ -109,7 +109,8 @@ bool HTML6Engine::parseDocument(const std::string& html) {
         }
     }
 
-    ast_.body.root_element = document;
+    ast_.document_root_element = document;
+    ast_.body.root_element.reset();
     std::function<void(const std::shared_ptr<Element>&)> collect =
         [&](const std::shared_ptr<Element>& element) {
             if (!element) return;
