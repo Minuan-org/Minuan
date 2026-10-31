@@ -8,7 +8,8 @@ creation shortcut and links to verified SimVerse project resources.
 ## Architecture
 
 - Minuan owns the browser window, tabs, address bar, configured HTTPS
-  host allowlist, local HTML6 opening and document conversion.
+  host allowlist, bookmarks, downloads, privacy toggles, local HTML6 opening
+  and document conversion.
 - HTML6Engine reads the document and builds a lightweight element tree.
 - DOMProcessor converts supported HTML6 shorthand markup into HTML.
 - Sunay embeds Qt WebEngine in each Minuan tab and exposes document loading,
@@ -39,6 +40,11 @@ SimVerse petition, the Sunay project, and the Minuan repository. It clearly
 marks the App Store as in development until its catalogue is ready. The home page
 can be opened again with the Home button or by entering `simverse://home`.
 Choose **Open a local project** on the home page to open an HTML6 or HTML file.
+
+Minuan also supports opening links in new tabs, saving approved-site bookmarks,
+handling downloads with a Save dialog, and switching JavaScript or image loading
+off for the current tab. Keyboard shortcuts include Ctrl+T (new tab), Ctrl+W
+(close tab), Ctrl+L (focus address bar), Ctrl+D (bookmark), and Ctrl+O (open file).
 
 ## Allowed websites
 

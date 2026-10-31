@@ -27,7 +27,7 @@ bool isSpace(char ch) {
 bool isVoidElement(const std::string& tag) {
     static const char* names[] = {
         "area", "base", "br", "col", "embed", "hr", "img", "input",
-        "link", "meta", "param", "source", "track", "wbr", "mt"
+        "link", "meta", "param", "source", "track", "wbr", "mt", "txt"
     };
     return std::any_of(std::begin(names), std::end(names),
                        [&tag](const char* name) { return tag == name; });
@@ -209,10 +209,19 @@ std::shared_ptr<Element> HTML6Engine::parseElement(const std::string& html,
                 pos = html.size();
                 break;
             }
+            std::size_t nameStart = pos + 2;
+            while (nameStart < end && isSpace(html[nameStart])) {
+                ++nameStart;
+            }
+            std::size_t nameEnd = nameStart;
+            while (nameEnd < end && !isSpace(html[nameEnd]) &&
+                   html[nameEnd] != '/') {
+                ++nameEnd;
+            }
             const std::string closingName =
-                lowerCopy(html.substr(pos + 2, end - pos - 2));
+                lowerCopy(html.substr(nameStart, nameEnd - nameStart));
             pos = end + 1;
-            if (closingName.find(element->tag_name) == 0) break;
+            if (closingName == element->tag_name) break;
             continue;
         }
 

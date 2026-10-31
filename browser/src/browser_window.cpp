@@ -18,6 +18,11 @@
 #include <QKeySequence>
 #include <QLabel>
 #include <QLineEdit>
+#include <QMenu>
+#include <QMenuBar>
+#include <QSettings>
+#include <QSignalBlocker>
+#include <QStandardPaths>
 #include <QProgressBar>
 #include <QStatusBar>
 #include <QTabWidget>
@@ -26,7 +31,15 @@
 #include <QVBoxLayout>
 #include <QWebEngineHistory>
 #include <QWebEnginePage>
+#include <QWebEngineProfile>
 #include <QWebEngineView>
+#include <QtGlobal>
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#include <QWebEngineDownloadRequest>
+#else
+#include <QWebEngineDownloadItem>
+#endif
 
 #include <functional>
 #include <utility>
@@ -37,17 +50,25 @@ class SafeWebPage final : public QWebEnginePage {
 public:
     using BlockedHandler = std::function<void(const QUrl&)>;
     using InternalHandler = std::function<void(const QUrl&)>;
+    using NewWindowHandler =
+        std::function<QWebEnginePage*(QWebEnginePage::WebWindowType)>;
 
     SafeWebPage(const QSet<QString>& allowedHosts,
                 BlockedHandler blockedHandler,
                 InternalHandler internalHandler,
+                NewWindowHandler newWindowHandler,
                 QObject* parent = nullptr)
         : QWebEnginePage(parent),
           allowedHosts_(allowedHosts),
           blockedHandler_(std::move(blockedHandler)),
-          internalHandler_(std::move(internalHandler)) {}
+          internalHandler_(std::move(internalHandler)),
+          newWindowHandler_(std::move(newWindowHandler)) {}
 
 protected:
+    QWebEnginePage* createWindow(QWebEnginePage::WebWindowType type) override {
+        return newWindowHandler_ ? newWindowHandler_(type) : nullptr;
+    }
+
     bool acceptNavigationRequest(const QUrl& url,
                                  QWebEnginePage::NavigationType type,
                                  bool isMainFrame) override {
@@ -79,6 +100,7 @@ private:
     QSet<QString> allowedHosts_;
     BlockedHandler blockedHandler_;
     InternalHandler internalHandler_;
+    NewWindowHandler newWindowHandler_;
 };
 
 } // namespace
@@ -89,6 +111,65 @@ BrowserWindow::BrowserWindow() {
 
     const bool sitesLoaded = loadWebsites();
     buildUi();
+    connect(QWebEngineProfile::defaultProfile(),
+            &QWebEngineProfile::downloadRequested,
+            this, [this](auto* download) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+                const QString suggestedName = download->suggestedFileName().isEmpty()
+                    ? QStringLiteral("download")
+                    : download->suggestedFileName();
+                const QString initialPath = QDir(
+                    QStandardPaths::writableLocation(QStandardPaths::DownloadLocation))
+                    .filePath(suggestedName);
+                const QString filePath = QFileDialog::getSaveFileName(
+                    this, tr("Save download"), initialPath);
+                if (filePath.isEmpty()) {
+                    download->cancel();
+                    statusLabel_->setText(tr("Download cancelled."));
+                    return;
+                }
+
+                const QFileInfo destination(filePath);
+                download->setDownloadDirectory(destination.absolutePath());
+                download->setDownloadFileName(destination.fileName());
+                download->accept();
+                statusLabel_->setText(tr("Downloading %1").arg(destination.fileName()));
+                connect(download, &QWebEngineDownloadRequest::stateChanged,
+                        this, [this, download](QWebEngineDownloadRequest::DownloadState state) {
+                            if (state == QWebEngineDownloadRequest::DownloadCompleted) {
+                                statusLabel_->setText(
+                                    tr("Download saved: %1").arg(download->downloadFileName()));
+                            } else if (state == QWebEngineDownloadRequest::DownloadInterrupted) {
+                                statusLabel_->setText(tr("The download was interrupted."));
+                            } else if (state == QWebEngineDownloadRequest::DownloadCancelled) {
+                                statusLabel_->setText(tr("Download cancelled."));
+                            }
+                        });
+#else
+                const QString suggestedName = QFileInfo(download->path()).fileName().isEmpty()
+                    ? QStringLiteral("download")
+                    : QFileInfo(download->path()).fileName();
+                const QString initialPath = QDir(
+                    QStandardPaths::writableLocation(QStandardPaths::DownloadLocation))
+                    .filePath(suggestedName);
+                const QString filePath = QFileDialog::getSaveFileName(
+                    this, tr("Save download"), initialPath);
+                if (filePath.isEmpty()) {
+                    download->cancel();
+                    statusLabel_->setText(tr("Download cancelled."));
+                    return;
+                }
+
+                download->setPath(filePath);
+                download->accept();
+                statusLabel_->setText(tr("Downloading %1").arg(QFileInfo(filePath).fileName()));
+                connect(download, &QWebEngineDownloadItem::finished, this,
+                        [this, filePath]() {
+                            statusLabel_->setText(
+                                tr("Download finished: %1").arg(QFileInfo(filePath).fileName()));
+                        });
+#endif
+            });
     createTab(QUrl(QStringLiteral("about:blank")));
 
     if (!sitesLoaded) {
@@ -215,6 +296,19 @@ QProgressBar::chunk {
     navigation->addSeparator();
     QAction* newTabAction = navigation->addAction(tr("New tab"));
     QAction* openFileAction = navigation->addAction(tr("Open HTML6"));
+    QAction* bookmarkAction = navigation->addAction(tr("Bookmark"));
+
+    bookmarksMenu_ = menuBar()->addMenu(tr("Bookmarks"));
+    connect(bookmarksMenu_, &QMenu::aboutToShow,
+            this, &BrowserWindow::rebuildBookmarksMenu);
+
+    auto* privacyMenu = menuBar()->addMenu(tr("Privacy"));
+    javaScriptAction_ = privacyMenu->addAction(tr("Allow JavaScript"));
+    javaScriptAction_->setCheckable(true);
+    javaScriptAction_->setChecked(true);
+    imagesAction_ = privacyMenu->addAction(tr("Load images"));
+    imagesAction_->setCheckable(true);
+    imagesAction_->setChecked(true);
 
     backAction_->setShortcut(QKeySequence::Back);
     forwardAction_->setShortcut(QKeySequence::Forward);
@@ -224,6 +318,56 @@ QProgressBar::chunk {
     homeAction->setShortcut(QKeySequence(QStringLiteral("Alt+Home")));
     newTabAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+T")));
     openFileAction->setShortcut(QKeySequence::Open);
+    bookmarkAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+D")));
+    bookmarkAction->setShortcutContext(Qt::WindowShortcut);
+    addAction(bookmarkAction);
+
+    auto* focusAddressAction = new QAction(this);
+    focusAddressAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+L")));
+    focusAddressAction->setShortcutContext(Qt::WindowShortcut);
+    addAction(focusAddressAction);
+    connect(focusAddressAction, &QAction::triggered, this, [this]() {
+        addressBar_->setFocus();
+        addressBar_->selectAll();
+    });
+
+    auto* closeCurrentTabAction = new QAction(this);
+    closeCurrentTabAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+W")));
+    closeCurrentTabAction->setShortcutContext(Qt::WindowShortcut);
+    addAction(closeCurrentTabAction);
+    connect(closeCurrentTabAction, &QAction::triggered, this, [this]() {
+        closeTab(tabs_->currentIndex());
+    });
+
+    connect(bookmarkAction, &QAction::triggered,
+            this, &BrowserWindow::addBookmark);
+    connect(javaScriptAction_, &QAction::toggled, this, [this](bool enabled) {
+        if (auto* tab = currentTab()) {
+            tab->javaScriptEnabled = enabled;
+            Sunay::RenderingOptions options;
+            options.javaScriptEnabled = tab->javaScriptEnabled;
+            options.imagesEnabled = tab->imagesEnabled;
+            options.localContentCanAccessRemoteUrls = false;
+            tab->renderer->setOptions(options);
+            statusLabel_->setText(enabled
+                ? tr("JavaScript is enabled for this tab.")
+                : tr("JavaScript is disabled for this tab."));
+        }
+    });
+    connect(imagesAction_, &QAction::toggled, this, [this](bool enabled) {
+        if (auto* tab = currentTab()) {
+            tab->imagesEnabled = enabled;
+            Sunay::RenderingOptions options;
+            options.javaScriptEnabled = tab->javaScriptEnabled;
+            options.imagesEnabled = tab->imagesEnabled;
+            options.localContentCanAccessRemoteUrls = false;
+            tab->renderer->setOptions(options);
+            statusLabel_->setText(enabled
+                ? tr("Images are enabled for this tab.")
+                : tr("Images are disabled for this tab."));
+        }
+    });
+
     backAction_->setEnabled(false);
     forwardAction_->setEnabled(false);
 
@@ -343,6 +487,11 @@ void BrowserWindow::createTab(const QUrl& initialUrl) {
                 statusLabel_->setText(tr("That Minuan action is not available."));
             }
         },
+        [this](QWebEnginePage::WebWindowType) -> QWebEnginePage* {
+            createTab(QUrl(QStringLiteral("about:blank")));
+            auto* newTab = currentTab();
+            return newTab ? newTab->view->page() : nullptr;
+        },
         view);
     view->setPage(page);
     layout->addWidget(view);
@@ -354,10 +503,20 @@ void BrowserWindow::createTab(const QUrl& initialUrl) {
     options.localContentCanAccessRemoteUrls = false;
     renderer->setOptions(options);
 
-    tabRuntimes_.insert(tabWidget, TabRuntime{view, renderer});
+    tabRuntimes_.insert(tabWidget, TabRuntime{view, renderer, true, true, false, 0});
+
+    connect(page, &QWebEnginePage::windowCloseRequested, this, [this, tabWidget]() {
+        const int index = tabs_->indexOf(tabWidget);
+        if (index >= 0) closeTab(index);
+    });
 
     connect(renderer, &Sunay::RenderingPipeline::renderingStarted,
             this, [this, tabWidget]() {
+                auto it = tabRuntimes_.find(tabWidget);
+                if (it != tabRuntimes_.end()) {
+                    it->isLoading = true;
+                    it->loadProgress = 0;
+                }
                 if (tabs_->currentWidget() == tabWidget) {
                     statusLabel_->setText(tr("Loading page..."));
                     progressBar_->setValue(0);
@@ -368,6 +527,10 @@ void BrowserWindow::createTab(const QUrl& initialUrl) {
 
     connect(renderer, &Sunay::RenderingPipeline::loadProgressChanged,
             this, [this, tabWidget](int progress) {
+                auto it = tabRuntimes_.find(tabWidget);
+                if (it != tabRuntimes_.end()) {
+                    it->loadProgress = progress;
+                }
                 if (tabs_->currentWidget() == tabWidget) {
                     progressBar_->setValue(progress);
                     progressBar_->setVisible(progress < 100);
@@ -376,6 +539,11 @@ void BrowserWindow::createTab(const QUrl& initialUrl) {
 
     connect(renderer, &Sunay::RenderingPipeline::renderingFinished,
             this, [this, tabWidget](bool success) {
+                auto it = tabRuntimes_.find(tabWidget);
+                if (it != tabRuntimes_.end()) {
+                    it->isLoading = false;
+                    it->loadProgress = 100;
+                }
                 if (tabs_->currentWidget() == tabWidget) {
                     progressBar_->hide();
                     stopAction_->setEnabled(false);
@@ -573,6 +741,18 @@ void BrowserWindow::updateCurrentTab() {
     setWindowTitle(title.isEmpty()
                        ? QStringLiteral("Minuan")
                        : title + QStringLiteral(" — Minuan"));
+    {
+        const QSignalBlocker jsBlocker(javaScriptAction_);
+        javaScriptAction_->setChecked(tab->javaScriptEnabled);
+    }
+    {
+        const QSignalBlocker imagesBlocker(imagesAction_);
+        imagesAction_->setChecked(tab->imagesEnabled);
+    }
+    progressBar_->setValue(tab->loadProgress);
+    progressBar_->setVisible(tab->isLoading);
+    stopAction_->setEnabled(tab->isLoading);
+    if (!tab->isLoading) statusLabel_->setText(tr("Ready"));
     updateNavigationActions();
 }
 
@@ -588,5 +768,79 @@ void BrowserWindow::updateNavigationActions() {
     backAction_->setEnabled(history->canGoBack());
     forwardAction_->setEnabled(history->canGoForward());
     reloadAction_->setEnabled(true);
+}
+
+void BrowserWindow::addBookmark() {
+    auto* tab = currentTab();
+    if (!tab) return;
+
+    const QUrl url = tab->view->url();
+    if (!isAllowedUrl(url)) {
+        statusLabel_->setText(tr("Only approved HTTPS pages can be bookmarked."));
+        return;
+    }
+
+    QString title = tab->view->title().trimmed();
+    if (title.isEmpty()) title = url.host();
+    title = title.left(80);
+    const QString urlText = url.toString(QUrl::FullyEncoded);
+
+    QSettings settings;
+    QStringList titles;
+    QStringList urls;
+    const int count = settings.beginReadArray(QStringLiteral("bookmarks"));
+    for (int i = 0; i < count; ++i) {
+        settings.setArrayIndex(i);
+        titles.push_back(settings.value(QStringLiteral("title")).toString());
+        urls.push_back(settings.value(QStringLiteral("url")).toString());
+    }
+    settings.endArray();
+
+    if (urls.contains(urlText)) {
+        statusLabel_->setText(tr("That page is already bookmarked."));
+        return;
+    }
+
+    titles.push_back(title);
+    urls.push_back(urlText);
+    settings.beginWriteArray(QStringLiteral("bookmarks"), urls.size());
+    for (int i = 0; i < urls.size(); ++i) {
+        settings.setArrayIndex(i);
+        settings.setValue(QStringLiteral("title"), titles.at(i));
+        settings.setValue(QStringLiteral("url"), urls.at(i));
+    }
+    settings.endArray();
+
+    statusLabel_->setText(tr("Bookmark saved: %1").arg(title));
+}
+
+void BrowserWindow::rebuildBookmarksMenu() {
+    if (!bookmarksMenu_) return;
+    bookmarksMenu_->clear();
+
+    QSettings settings;
+    const int count = settings.beginReadArray(QStringLiteral("bookmarks"));
+    for (int i = 0; i < count; ++i) {
+        settings.setArrayIndex(i);
+        const QString title = settings.value(QStringLiteral("title")).toString();
+        const QUrl url(settings.value(QStringLiteral("url")).toString());
+        QAction* action = bookmarksMenu_->addAction(
+            title.isEmpty() ? url.host() : title);
+        action->setData(url.toString(QUrl::FullyEncoded));
+        connect(action, &QAction::triggered, this, [this, url]() {
+            if (!isAllowedUrl(url)) {
+                statusLabel_->setText(
+                    tr("This bookmark is no longer in the approved-sites list."));
+                return;
+            }
+            if (auto* tab = currentTab()) tab->renderer->navigate(url);
+        });
+    }
+    settings.endArray();
+
+    if (count == 0) {
+        QAction* emptyAction = bookmarksMenu_->addAction(tr("No bookmarks saved yet"));
+        emptyAction->setEnabled(false);
+    }
 }
 
