@@ -32,6 +32,7 @@ private:
     void createTab(const QUrl& initialUrl = QUrl(QStringLiteral("about:blank")));
     void closeTab(int index);
     void navigateAddress();
+    void showHomePage(TabRuntime* tab);
     void openLocalHtml6();
     void loadHtml6File(const QString& path);
     void updateCurrentTab();
