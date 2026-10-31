@@ -254,8 +254,9 @@ bool HTML6Validator::validateDocumentStructure(const HTML6AST* ast) {
                            cloud->second == "true" &&
                            multiplayer != element->attributes.end() &&
                            multiplayer->second == "true") {
-                    addWarning("Server '" +
-                               (id != element->attributes.end() ? id->second : "(unnamed)") +
+                    const std::string serverName =
+                        id != element->attributes.end() ? id->second : "(unnamed)";
+                    addWarning("Server '" + serverName +
                                "' requests Chrono multiplayer; Minuan currently stores "
                                "the definition but does not run Chrono");
                 }
