@@ -11,6 +11,7 @@ creation shortcut and links to verified SimVerse project resources.
   host allowlist, bookmarks, downloads, privacy toggles, local HTML6 opening
   and document conversion.
 - HTML6Engine reads the document and builds a lightweight element tree.
+- HTML6Validator checks custom names and common standard HTML names before conversion.
 - DOMProcessor converts supported HTML6 shorthand markup into HTML.
 - Sunay embeds Qt WebEngine in each Minuan tab and exposes document loading,
   progress, completion and stop operations.
@@ -43,8 +44,10 @@ Choose **Open a local project** on the home page to open an HTML6 or HTML file.
 
 Minuan also supports opening links in new tabs, saving approved-site bookmarks,
 handling downloads with a Save dialog, and switching JavaScript or image loading
-off for the current tab. Keyboard shortcuts include Ctrl+T (new tab), Ctrl+W
-(close tab), Ctrl+L (focus address bar), Ctrl+D (bookmark), and Ctrl+O (open file).
+off for the current tab. The address bar keeps the SimVerse home label and the
+selected local-file name while Sunay renders those documents. Keyboard shortcuts
+include Ctrl+T (new tab), Ctrl+W (close tab), Ctrl+L (focus address bar),
+Ctrl+D (bookmark), and Ctrl+O (open file).
 
 ## Allowed websites
 
@@ -52,8 +55,9 @@ Edit browser/websites.json to define HTTPS sites Minuan may navigate to.
 Google UK is used for searches. Google UK, Google.com and GitHub are
 included by default. Plain words entered in the address bar are searched with
 Google. Top-level and frame navigation to hosts outside this list is blocked;
-subdomains of a configured host are accepted. Plain HTTP navigation is
-blocked. Add a domain to this file before Minuan can open it.
+subdomains of a configured host are accepted. Plain HTTP, URL-embedded
+credentials, and non-standard HTTPS ports are blocked. Add a domain to this
+file before Minuan can open it.
 
 ## Requirements
 
@@ -67,9 +71,10 @@ blocked. Add a domain to this file before Minuan can open it.
     cmake -S . -B out/build
     cmake --build out/build --config Release
 
-On Windows, build/build.bat configures Visual Studio 2022 and builds the
-Release executable. The script runs windeployqt when it is available so the
-Qt WebEngine runtime files can be copied next to the executable.
+On Windows, build/build.bat configures Visual Studio 2022, builds and tests
+the Release executable, then runs windeployqt to copy the Qt and Qt WebEngine
+runtime, resources and locale files beside the executable. The portable folder
+must stay together when moving Minuan to another computer.
 
 ## Open a local document
 

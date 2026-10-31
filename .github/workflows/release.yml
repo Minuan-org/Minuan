@@ -80,12 +80,59 @@ jobs:
             throw "windeployqt.exe was not found in the installed Qt directory."
           }
 
-          & $windeployqt --release --compiler-runtime --no-translations $executable
+          # Keep WebEngine locale files: Chromium uses them at runtime.
+          & $windeployqt --release --compiler-runtime $executable
           if ($LASTEXITCODE -ne 0) {
             exit $LASTEXITCODE
           }
 
+          $webEngineProcess = Get-ChildItem -Path "package/bin" -Filter "QtWebEngineProcess.exe" -Recurse -File |
+            Select-Object -First 1
+          if (!$webEngineProcess) {
+            throw "QtWebEngineProcess.exe is missing from the portable package."
+          }
+
+          foreach ($resourceName in @(
+            "qtwebengine_resources.pak",
+            "icudtl.dat",
+            "v8_context_snapshot.bin"
+          )) {
+            $resource = Get-ChildItem -Path "package/bin" -Filter $resourceName -Recurse -File |
+              Select-Object -First 1
+            if (!$resource) {
+              throw "Required Qt WebEngine resource is missing: $resourceName"
+            }
+          }
+
+          $localeDirectory = Get-ChildItem -Path "package/bin" -Directory -Filter "qtwebengine_locales" -Recurse |
+            Select-Object -First 1
+          if (!$localeDirectory) {
+            throw "Qt WebEngine locale directory is missing from the portable package."
+          }
+          $localeFile = Get-ChildItem -Path $localeDirectory.FullName -Filter "*.pak" -File |
+            Select-Object -First 1
+          if (!$localeFile) {
+            throw "Qt WebEngine locale files are missing from the portable package."
+          }
+
+          @"
+          MINUAN 1.1.0 — WINDOWS x64
+
+          1. Extract the whole ZIP file into a folder.
+          2. Open Minuan.exe from that folder.
+          3. Keep the other files and folders beside Minuan.exe.
+
+          Minuan uses the Sunay rendering component and Qt WebEngine.
+          Only HTTPS websites in the approved-sites list can be opened.
+          HTML6 support is an early conversion feature. CSS Next, JS-squared
+          and the HTML6 server runtime are not complete yet.
+          "@ | Set-Content -Path "package/bin/README.txt" -Encoding UTF8
+
           Compress-Archive -Path "package/bin/*" -DestinationPath "Minuan-Windows-x64.zip" -Force
+          if (!(Test-Path "Minuan-Windows-x64.zip") -or
+              (Get-Item "Minuan-Windows-x64.zip").Length -lt 1000000) {
+            throw "The portable Minuan ZIP was not created correctly."
+          }
 
       - name: Attach package and correct release notes
         uses: softprops/action-gh-release@v3
