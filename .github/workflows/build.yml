@@ -23,7 +23,7 @@ jobs:
           target: desktop
           arch: win64_msvc2022_64
           modules: "qtwebengine"
-          archives: "qtbase qtwebchannel"
+          archives: "qtbase qtwebchannel qtdeclarative"
           cache: true
 
       - name: Configure
