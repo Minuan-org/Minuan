@@ -3,8 +3,52 @@
 
 #include <algorithm>
 #include <cctype>
+#include <functional>
+#include <unordered_set>
 
 using namespace Minuan::HTML6;
+
+namespace {
+
+bool isStandardHtmlTag(const std::string& tag) {
+    static const std::unordered_set<std::string> names{
+        "html", "head", "body", "title", "base", "link", "meta", "style",
+        "script", "noscript", "main", "header", "footer", "nav", "section",
+        "article", "aside", "div", "span", "p", "a", "button", "input",
+        "textarea", "select", "option", "label", "form", "fieldset",
+        "legend", "ul", "ol", "li", "dl", "dt", "dd", "table", "caption",
+        "thead", "tbody", "tfoot", "tr", "th", "td", "col", "colgroup",
+        "h1", "h2", "h3", "h4", "h5", "h6", "img", "picture", "source",
+        "audio", "video", "track", "canvas", "svg", "path", "br", "hr",
+        "pre", "code", "blockquote", "strong", "em", "small", "sub",
+        "sup", "details", "summary", "dialog", "progress", "meter",
+        "time", "mark", "iframe", "embed", "object", "param", "wbr"
+    };
+    return names.find(tag) != names.end();
+}
+
+bool isStandardHtmlAttribute(const std::string& attribute) {
+    if (attribute.rfind("data-", 0) == 0 ||
+        attribute.rfind("aria-", 0) == 0) {
+        return true;
+    }
+
+    static const std::unordered_set<std::string> names{
+        "id", "class", "title", "href", "src", "alt", "type", "name",
+        "value", "placeholder", "disabled", "required", "checked",
+        "selected", "readonly", "readOnly", "for", "action", "method",
+        "target", "rel", "style", "role", "width", "height", "tabindex",
+        "autocomplete", "download", "accept", "multiple", "min", "max",
+        "step", "rows", "cols", "content", "charset", "lang", "dir",
+        "hidden", "draggable", "spellcheck", "colspan", "rowspan",
+        "scope", "open", "controls", "autoplay", "muted", "loop",
+        "poster", "preload", "crossorigin", "defer", "async", "media",
+        "datetime", "loading", "decoding", "srcset", "sizes"
+    };
+    return names.find(attribute) != names.end();
+}
+
+} // namespace
 
 HTML6Validator::HTML6Validator() {
     Utils::log("HTML6Validator instance created");
@@ -49,9 +93,25 @@ bool HTML6Validator::validateDocumentStructure(const HTML6AST* ast) {
     }
 
     bool valid = true;
+    // A missing doctype is a warning, so it does not make the document unusable.
+    validateDoctype(ast->body.raw_html);
+
     for (const auto& server : ast->head.servers) {
         if (!validateServerRules(server)) valid = false;
     }
+
+    std::function<void(const std::shared_ptr<Element>&)> validateTree =
+        [&](const std::shared_ptr<Element>& element) {
+            if (!element) return;
+            if (element->tag_name != "#document" &&
+                !validateElement(*element)) {
+                valid = false;
+            }
+            for (const auto& child : element->children) {
+                validateTree(child);
+            }
+        };
+    validateTree(ast->body.root_element);
 
     for (const auto& meta : ast->head.metadata) {
         if (hasVowels(meta.name)) {
@@ -73,14 +133,19 @@ bool HTML6Validator::validateDocumentStructure(const HTML6AST* ast) {
 }
 
 bool HTML6Validator::validateElement(const Element& element) {
-    if (!validateTagName(element.tag_name)) {
-        addError("Tag <" + element.tag_name + "> contains vowels");
+    const std::string tag = element.tag_name;
+    if (tag != "#document" && !isStandardHtmlTag(tag) &&
+        !validateTagName(tag)) {
+        addError("Custom HTML6 tag <" + tag +
+                 "> must use the vowel-free HTML6 naming style");
         return false;
     }
 
     for (const auto& attr : element.attributes) {
-        if (!validateAttributeName(attr.first)) {
-            addError("Attribute '" + attr.first + "' contains vowels");
+        if (!isStandardHtmlAttribute(attr.first) &&
+            !validateAttributeName(attr.first)) {
+            addError("Custom HTML6 attribute '" + attr.first +
+                     "' must use the vowel-free HTML6 naming style");
             return false;
         }
     }

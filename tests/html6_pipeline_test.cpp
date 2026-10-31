@@ -41,6 +41,16 @@ int main() {
 
     Minuan::HTML6::HTML6Validator validator;
     if (!expect(validator.validateDoctype(source), "doctype is recognised")) return 1;
+    if (!expect(validator.validateDocumentStructure(ast),
+                "standard HTML tags and attributes pass document validation")) return 1;
+    if (!expect(validator.getErrorCount() == 0,
+                "valid HTML6 document has no validation errors")) return 1;
+
+    Minuan::HTML6::Element invalidCustomElement;
+    invalidCustomElement.tag_name = "container";
+    validator.clearErrors();
+    if (!expect(!validator.validateElement(invalidCustomElement),
+                "custom HTML6 tags with vowels are rejected")) return 1;
 
     Minuan::HTML6::DOMProcessor processor;
     const std::string html = processor.generateHTML(ast);
