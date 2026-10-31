@@ -64,6 +64,9 @@ struct HTML6AST {
 
     Head head;
     Body body;
+    // The full tree is retained separately because body.root_element points
+    // specifically to <bdy> after parsing, while validation also needs <hd>.
+    std::shared_ptr<Element> document_root_element;
     bool valid = false;
 };
 
