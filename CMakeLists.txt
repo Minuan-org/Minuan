@@ -91,6 +91,14 @@ if(BUILD_TESTING)
     )
     add_test(NAME MinuanNavigation COMMAND MinuanNavigationTests)
 
+    add_executable(MinuanGatewayTests
+        tests/gateway_page_test.cpp
+    )
+    add_test(
+        NAME MinuanGatewayPage
+        COMMAND MinuanGatewayTests "${PROJECT_SOURCE_DIR}/browser/home.html"
+    )
+
     add_executable(MinuanHtml6Tests
         tests/html6_pipeline_test.cpp
         src/html6_engine.cpp

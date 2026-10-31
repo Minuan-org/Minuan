@@ -23,7 +23,6 @@
 #include <QTabWidget>
 #include <QToolBar>
 #include <QUrl>
-#include <QUrlQuery>
 #include <QVBoxLayout>
 #include <QWebEngineHistory>
 #include <QWebEnginePage>
@@ -54,7 +53,11 @@ protected:
                                  bool isMainFrame) override {
         if (url.scheme().compare(QStringLiteral("minuan"),
                                  Qt::CaseInsensitive) == 0) {
-            if (internalHandler_) internalHandler_(url);
+            if (isMainFrame &&
+                type == QWebEnginePage::NavigationTypeLinkClicked &&
+                internalHandler_) {
+                internalHandler_(url);
+            }
             return false;
         }
 
@@ -307,14 +310,9 @@ bool BrowserWindow::loadWebsites() {
         }
 
         allowedHosts_.insert(NavigationUtils::cleanHost(url.host()));
-        if (homeUrl_.isEmpty()) homeUrl_ = url;
     }
 
     return !allowedHosts_.isEmpty();
-}
-
-bool BrowserWindow::isAllowedHost(const QString& candidate) const {
-    return NavigationUtils::isAllowedHost(candidate, allowedHosts_);
 }
 
 bool BrowserWindow::isAllowedUrl(const QUrl& url) const {

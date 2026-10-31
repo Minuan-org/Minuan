@@ -35,8 +35,8 @@ implemented yet.
 ## SimVerse gateway
 
 Every new tab opens the built-in SimVerse home page. It links to the published
-SimVerse petition, the Minuan and Sunay project repositories, and clearly marks
-the App Store as in development until its catalogue is ready. The home page
+SimVerse petition, the Sunay project, and the Minuan repository. It clearly
+marks the App Store as in development until its catalogue is ready. The home page
 can be opened again with the Home button or by entering `simverse://home`.
 Choose **Open a local project** on the home page to open an HTML6 or HTML file.
 

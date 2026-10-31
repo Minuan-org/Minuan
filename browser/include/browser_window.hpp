@@ -39,7 +39,6 @@ private:
     void updateNavigationActions();
     bool loadWebsites();
     bool isAllowedUrl(const QUrl& url) const;
-    bool isAllowedHost(const QString& host) const;
     TabRuntime* currentTab();
 
     QTabWidget* tabs_ = nullptr;
@@ -52,6 +51,5 @@ private:
     QAction* stopAction_ = nullptr;
 
     QSet<QString> allowedHosts_;
-    QUrl homeUrl_;
     QHash<QWidget*, TabRuntime> tabRuntimes_;
 };

@@ -88,12 +88,10 @@ jobs:
             - Tabbed browser window and navigation controls
             - HTTPS allowed-site filtering, including Google UK and Google.com
             - Google search directly from the address bar
-            - SimVerse gateway home screen with links to verified project resources
+            - Built-in SimVerse gateway home screen
             - Local HTML6 project opening from the home screen
-            - Dark browser controls with accessible SimVerse portal design
-            - Google search directly from the address bar
-            - Local HTML6 document opening
-            - Initial HTML6-to-HTML conversion pipeline
+            - HTML6-to-HTML conversion pipeline
+            - Sunay rendering pipeline with Qt WebEngine / Chromium
             - Windows x64 package with deployed Qt runtime
 
             ### Development status
