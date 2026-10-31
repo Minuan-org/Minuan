@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(MinuanBrowser
-    VERSION 1.1.0
+    VERSION 1.0.0
     DESCRIPTION "Minuan - a SimVerse browser using the Sunay rendering pipeline"
     LANGUAGES CXX
 )
@@ -23,8 +23,8 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets WebEngineWid
 FetchContent_Declare(
     Sunay
     GIT_REPOSITORY https://github.com/Minuan-org/Sunay.git
-    GIT_TAG 942000ef382de787fd067782efac998f8d00c5bf
-    GIT_SHALLOW FALSE
+    GIT_TAG v1.0.1
+    GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(Sunay)
 
