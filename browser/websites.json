@@ -1,5 +1,10 @@
 [
   {
+    "name": "Google UK",
+    "url": "https://www.google.co.uk",
+    "icon": "https://www.google.com/favicon.ico"
+  },
+  {
     "name": "Google",
     "url": "https://www.google.com",
     "icon": "https://www.google.com/favicon.ico"

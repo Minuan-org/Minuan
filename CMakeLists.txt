@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(MinuanBrowser
-    VERSION 1.0.0
+    VERSION 1.0.1
     DESCRIPTION "Minuan - a SimVerse browser using the Sunay rendering pipeline"
     LANGUAGES CXX
 )

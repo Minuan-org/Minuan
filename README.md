@@ -1,7 +1,9 @@
 # Minuan
 
 Minuan is a C++ browser for SimVerse. It uses Sunay as its embedded page
-renderer and Qt WebEngine (Chromium) for standards-based web rendering.
+renderer and Qt WebEngine (Chromium) for standards-based web rendering. The
+browser includes a dark navy and blue interface with cyan highlights, plus
+Google search from the address bar.
 
 ## Architecture
 
@@ -33,7 +35,9 @@ implemented yet.
 ## Allowed websites
 
 Edit browser/websites.json to define HTTPS sites Minuan may navigate to.
-The first valid entry becomes the home page. Top-level and frame navigation
+The first valid entry becomes the home page. Google UK and Google.com are
+included by default. Plain words entered in the address bar are searched with
+Google. Top-level and frame navigation
 to hosts outside this list is blocked; subdomains of a configured host are
 accepted. Plain HTTP navigation is blocked.
 

@@ -22,6 +22,7 @@
 #include <QTabWidget>
 #include <QToolBar>
 #include <QUrl>
+#include <QUrlQuery>
 #include <QVBoxLayout>
 #include <QWebEngineHistory>
 #include <QWebEnginePage>
@@ -110,6 +111,102 @@ BrowserWindow::BrowserWindow() {
 }
 
 void BrowserWindow::buildUi() {
+    setStyleSheet(QString::fromUtf8(R"STYLE(
+QMainWindow {
+    background: #0b1220;
+    color: #e5edf8;
+}
+QToolBar {
+    background: #14233b;
+    border: none;
+    border-bottom: 1px solid #263c5a;
+    spacing: 7px;
+    padding: 9px 12px;
+}
+QToolBar::separator {
+    background: #38506f;
+    width: 1px;
+    margin: 5px 4px;
+}
+QToolButton {
+    color: #e7efff;
+    background: #203451;
+    border: 1px solid #304a6d;
+    border-radius: 8px;
+    padding: 7px 11px;
+    font-weight: 600;
+}
+QToolButton:hover {
+    background: #2d4b70;
+    border-color: #55c5ff;
+}
+QToolButton:pressed {
+    background: #087e9b;
+}
+QToolButton:disabled {
+    color: #71839b;
+    background: #19283e;
+    border-color: #243650;
+}
+QLineEdit {
+    background: #f8fbff;
+    color: #182438;
+    border: 2px solid #435b7e;
+    border-radius: 10px;
+    padding: 8px 12px;
+    min-height: 24px;
+    selection-background-color: #0ea5e9;
+}
+QLineEdit:focus {
+    border: 2px solid #38bdf8;
+}
+QTabWidget::pane {
+    background: #0b1220;
+    border: 1px solid #243a58;
+    top: -1px;
+}
+QTabBar::tab {
+    background: #172842;
+    color: #bac9df;
+    border: 1px solid #253b59;
+    border-bottom: none;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    padding: 9px 16px;
+    margin-right: 3px;
+    min-width: 90px;
+}
+QTabBar::tab:selected {
+    background: #0b6f91;
+    color: #ffffff;
+    border-color: #38bdf8;
+}
+QTabBar::tab:hover:!selected {
+    background: #233d5e;
+    color: #ffffff;
+}
+QStatusBar {
+    background: #14233b;
+    color: #c5d3e6;
+    border-top: 1px solid #263c5a;
+}
+QLabel {
+    color: #c5d3e6;
+}
+QProgressBar {
+    background: #1c2e49;
+    border: 1px solid #36516f;
+    border-radius: 5px;
+    height: 9px;
+    text-align: center;
+    color: #dbeafe;
+}
+QProgressBar::chunk {
+    background: #38bdf8;
+    border-radius: 4px;
+}
+)STYLE"));
+
     auto* navigation = addToolBar(tr("Navigation"));
     navigation->setMovable(false);
 
@@ -122,8 +219,8 @@ void BrowserWindow::buildUi() {
 
     addressBar_ = new QLineEdit(navigation);
     addressBar_->setClearButtonEnabled(true);
-    addressBar_->setPlaceholderText(tr("Enter an allowed HTTPS address"));
-    addressBar_->setMinimumWidth(360);
+    addressBar_->setPlaceholderText(tr("Search Google or enter a website address"));
+    addressBar_->setMinimumWidth(420);
     navigation->addWidget(addressBar_);
 
     QAction* goAction = navigation->addAction(tr("Go"));
@@ -367,10 +464,26 @@ void BrowserWindow::navigateAddress() {
     if (!addressBar_) return;
 
     const QString enteredText = addressBar_->text().trimmed();
-    QUrl url = QUrl::fromUserInput(enteredText);
-    if (url.scheme() == QStringLiteral("http") &&
-        !enteredText.contains(QStringLiteral("://"))) {
-        url.setScheme(QStringLiteral("https"));
+    if (enteredText.isEmpty()) return;
+
+    QUrl url;
+    const bool looksLikeAddress =
+        enteredText.contains(QStringLiteral("://")) ||
+        enteredText.contains(QLatin1Char('.')) ||
+        enteredText.startsWith(QStringLiteral("localhost"),
+                               Qt::CaseInsensitive);
+
+    if (!looksLikeAddress || enteredText.contains(QLatin1Char(' '))) {
+        url = QUrl(QStringLiteral("https://www.google.co.uk/search"));
+        QUrlQuery query;
+        query.addQueryItem(QStringLiteral("q"), enteredText);
+        url.setQuery(query);
+    } else {
+        url = QUrl::fromUserInput(enteredText);
+        if (url.scheme() == QStringLiteral("http") &&
+            !enteredText.contains(QStringLiteral("://"))) {
+            url.setScheme(QStringLiteral("https"));
+        }
     }
     if (url.scheme() == QStringLiteral("http")) {
         statusLabel_->setText(tr("Only HTTPS sites are permitted."));
