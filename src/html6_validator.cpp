@@ -121,7 +121,9 @@ bool HTML6Validator::validateDocumentStructure(const HTML6AST* ast) {
     // A missing doctype is a warning, so it does not make the document unusable.
     validateDoctype(ast->body.raw_html);
 
-    const auto document = ast->body.root_element;
+    const auto document = ast->document_root_element
+                              ? ast->document_root_element
+                              : ast->body.root_element;
     bool usesHtml6 = false;
     std::function<void(const std::shared_ptr<Element>&)> detectHtml6 =
         [&](const std::shared_ptr<Element>& element) {
@@ -252,7 +254,8 @@ bool HTML6Validator::validateDocumentStructure(const HTML6AST* ast) {
                            cloud->second == "true" &&
                            multiplayer != element->attributes.end() &&
                            multiplayer->second == "true") {
-                    addWarning("Server '" + id->second +
+                    addWarning("Server '" +
+                               (id != element->attributes.end() ? id->second : "(unnamed)") +
                                "' requests Chrono multiplayer; Minuan currently stores "
                                "the definition but does not run Chrono");
                 }
