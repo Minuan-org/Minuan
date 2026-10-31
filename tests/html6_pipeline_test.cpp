@@ -96,7 +96,9 @@ int main() {
         "<!DOCTYPE html><html><hd><title>Project</title></hd>"
         "<bdy><main><figure class=\"card\" loading=\"lazy\" "
         "aria-label=\"Example card\" data-kind=\"demo\">"
-        "<figcaption>Example</figcaption></figure></main></bdy></html>";
+        "<figcaption>Example</figcaption></figure>"
+        "<object data=\"player.dat\"><param name=\"autoplay\" value=\"0\"></object>"
+        "</main></bdy></html>";
     Minuan::HTML6::HTML6Engine ordinaryEngine;
     if (!expect(ordinaryEngine.parseDocument(ordinaryHtml),
                 "ordinary HTML with common semantic elements parses")) return 1;

@@ -20,7 +20,7 @@ bool isStandardHtmlTag(const std::string& tag) {
         "h4", "h5", "h6", "head", "header", "hgroup", "hr", "html", "i",
         "iframe", "img", "input", "ins", "kbd", "label", "legend", "li",
         "link", "main", "map", "mark", "menu", "meta", "meter", "nav",
-        "noscript", "object", "ol", "optgroup", "option", "output", "p",
+        "noscript", "object", "ol", "optgroup", "option", "output", "p", "param",
         "picture", "pre", "progress", "q", "rp", "rt", "ruby", "s", "samp",
         "script", "search", "section", "select", "slot", "small", "source",
         "span", "strong", "style", "sub", "summary", "sup", "svg", "path",
