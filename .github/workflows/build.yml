@@ -9,7 +9,7 @@ on:
 
 jobs:
   windows:
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     steps:
       - name: Checkout
@@ -23,6 +23,7 @@ jobs:
           target: desktop
           arch: win64_msvc2022_64
           modules: "qtwebengine"
+          archives: "qtbase qtwebchannel"
           cache: true
 
       - name: Configure
