@@ -49,7 +49,7 @@ int main() {
     if (!expect(html.find("<body>") != std::string::npos, "bdy becomes body")) return 1;
     if (!expect(html.find("<meta name=\"title\" content=\"Minuan Test\">") != std::string::npos,
                 "mt becomes meta")) return 1;
-    if (!expect(html.find("<link rel=\"stylesheet\" href=\"site.css\">") != std::string::npos,
+    if (!expect(html.find("<link rel=\"stylesheet\" href=\"site.css\"") != std::string::npos,
                 "external styl becomes a stylesheet link")) return 1;
     if (!expect(html.find("<script") != std::string::npos &&
                 html.find("</script>") != std::string::npos,

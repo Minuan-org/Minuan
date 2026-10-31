@@ -10,6 +10,7 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QDir>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -423,8 +424,11 @@ void BrowserWindow::loadHtml6File(const QString& path) {
     auto* tab = currentTab();
     if (!tab) return;
 
-    const QUrl baseUrl = QUrl::fromLocalFile(
-        QFileInfo(path).absoluteFilePath());
+    QString baseDirectory = QDir(QFileInfo(path).absolutePath()).absolutePath();
+    if (!baseDirectory.endsWith(QDir::separator())) {
+        baseDirectory += QDir::separator();
+    }
+    const QUrl baseUrl = QUrl::fromLocalFile(baseDirectory);
     tab->renderer->renderHtml(QString::fromUtf8(
                                   html.data(), static_cast<int>(html.size())),
                               baseUrl);
