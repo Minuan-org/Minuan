@@ -46,7 +46,7 @@ bool isStandardHtmlAttribute(const std::string& attribute) {
         "lang", "dir", "hidden", "draggable", "spellcheck", "colspan", "rowspan",
         "scope", "open", "controls", "autoplay", "muted", "loop", "poster",
         "preload", "crossorigin", "defer", "async", "media", "datetime",
-        "loading", "decoding", "srcset", "sizes", "autofocus", "form",
+        "loading", "decoding", "srcset", "sizes", "data", "autofocus", "form",
         "formaction", "formenctype", "formmethod", "formnovalidate", "formtarget",
         "pattern", "size", "maxlength", "minlength", "inputmode", "enterkeyhint",
         "contenteditable", "accesskey", "translate", "inert", "slot", "popover",
