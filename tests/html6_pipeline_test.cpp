@@ -74,6 +74,24 @@ int main() {
     if (!expect(html.find("<!doctype html>") != std::string::npos,
                 "HTML output has a browser-compatible doctype")) return 1;
 
+    const std::string rawBoundarySource =
+        "<html><hd>"
+        "<scrpt>const marker = '</scrptExtra>'; console.log('script still open');</scrpt>"
+        "<styl>.sample::after { content: '</stylExtra>'; }</styl>"
+        "</hd><bdy><dv>After raw tags</dv></bdy></html>";
+    Minuan::HTML6::HTML6Engine rawBoundaryEngine;
+    if (!expect(rawBoundaryEngine.parseDocument(rawBoundarySource),
+                "raw script and style content with similar closing names parses")) return 1;
+    const std::string rawBoundaryHtml =
+        processor.generateHTML(rawBoundaryEngine.getAST());
+    if (!expect(rawBoundaryHtml.find("</scrptExtra>") != std::string::npos,
+                "script text is not cut off by a longer tag name")) return 1;
+    if (!expect(rawBoundaryHtml.find("</stylExtra>") != std::string::npos,
+                "style text is not cut off by a longer tag name")) return 1;
+    if (!expect(rawBoundaryHtml.find("script still open") != std::string::npos &&
+                rawBoundaryHtml.find("After raw tags") != std::string::npos,
+                "content after raw tags remains in the document")) return 1;
+
     std::cout << "Minuan HTML6 pipeline checks passed.\n";
     return 0;
 }

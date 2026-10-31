@@ -23,6 +23,22 @@ bool space(char ch) {
     return std::isspace(static_cast<unsigned char>(ch)) != 0;
 }
 
+std::size_t findClosingTag(const std::string& loweredInput,
+                           const std::string& tagName,
+                           std::size_t start) {
+    const std::string candidate = "</" + tagName;
+    std::size_t pos = loweredInput.find(candidate, start);
+    while (pos != std::string::npos) {
+        const std::size_t boundary = pos + candidate.size();
+        if (boundary == loweredInput.size() || loweredInput[boundary] == '>' ||
+            loweredInput[boundary] == '/' || space(loweredInput[boundary])) {
+            return pos;
+        }
+        pos = loweredInput.find(candidate, pos + 2);
+    }
+    return std::string::npos;
+}
+
 std::map<std::string, std::string> readAttributes(const std::string& text) {
     std::map<std::string, std::string> result;
     std::size_t pos = 0;
@@ -155,7 +171,9 @@ std::string convertMarkup(const std::string& input) {
         const std::string originalName = lower(token.substr(nameStart, cursor - nameStart));
         const std::string attrText = token.substr(cursor);
         const auto attrs = readAttributes(attrText);
-        const bool selfClosing = !token.empty() && token.back() == '/';
+        std::size_t tokenEnd = token.size();
+        while (tokenEnd > 0 && space(token[tokenEnd - 1])) --tokenEnd;
+        const bool selfClosing = tokenEnd > 0 && token[tokenEnd - 1] == '/';
 
         if (originalName == "txt") {
             if (!closing) {
@@ -196,7 +214,7 @@ std::string convertMarkup(const std::string& input) {
             pos = tagEnd + 1;
             if (!closing && !selfClosing) {
                 const std::string lowered = lower(input);
-                const std::size_t close = lowered.find("</styl", pos);
+                const std::size_t close = findClosingTag(lowered, "styl", pos);
                 if (close != std::string::npos) {
                     const std::size_t closeEnd = input.find('>', close);
                     pos = closeEnd == std::string::npos ? input.size() : closeEnd + 1;
@@ -233,15 +251,20 @@ std::string convertMarkup(const std::string& input) {
             (originalName == "scrpt" || originalName == "script" ||
              originalName == "styl" || originalName == "style")) {
             const std::string loweredInput = lower(input);
-            const std::string closeTag = "</" + originalName;
-            const std::size_t closeStart = loweredInput.find(closeTag, tagEnd + 1);
+            const std::size_t closeStart =
+                findClosingTag(loweredInput, originalName, tagEnd + 1);
             if (closeStart != std::string::npos) {
                 output.append(input, tagEnd + 1, closeStart - tagEnd - 1);
                 output += "</" + mappedTag(originalName) + ">";
                 const std::size_t closeEnd = input.find('>', closeStart);
                 pos = closeEnd == std::string::npos ? input.size() : closeEnd + 1;
-                continue;
+            } else {
+                // Raw script/style text must never be re-parsed as HTML.
+                output.append(input, tagEnd + 1, std::string::npos);
+                output += "</" + mappedTag(originalName) + ">";
+                pos = input.size();
             }
+            continue;
         }
         pos = tagEnd + 1;
     }
