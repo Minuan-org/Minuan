@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 project(MinuanBrowser
-    VERSION 1.0.1
+    VERSION 1.1.0
     DESCRIPTION "Minuan - a SimVerse browser using the Sunay rendering pipeline"
     LANGUAGES CXX
 )
@@ -31,6 +31,7 @@ FetchContent_MakeAvailable(Sunay)
 set(MINUAN_SOURCES
     browser/src/main.cpp
     browser/src/browser_window.cpp
+    browser/src/navigation_utils.cpp
     src/html6_engine.cpp
     src/dom_processor.cpp
     src/html6_validator.cpp
@@ -71,10 +72,33 @@ add_custom_command(TARGET MinuanBrowser POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${PROJECT_SOURCE_DIR}/browser/websites.json"
         "$<TARGET_FILE_DIR:MinuanBrowser>/websites.json"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${PROJECT_SOURCE_DIR}/browser/home.html"
+        "$<TARGET_FILE_DIR:MinuanBrowser>/home.html"
     VERBATIM
 )
 
 if(BUILD_TESTING)
+    add_executable(MinuanNavigationTests
+        tests/navigation_utils_test.cpp
+        browser/src/navigation_utils.cpp
+    )
+    target_include_directories(MinuanNavigationTests PRIVATE
+        ${PROJECT_SOURCE_DIR}/browser/include
+    )
+    target_link_libraries(MinuanNavigationTests PRIVATE
+        Qt${QT_VERSION_MAJOR}::Core
+    )
+    add_test(NAME MinuanNavigation COMMAND MinuanNavigationTests)
+
+    add_executable(MinuanGatewayTests
+        tests/gateway_page_test.cpp
+    )
+    add_test(
+        NAME MinuanGatewayPage
+        COMMAND MinuanGatewayTests "${PROJECT_SOURCE_DIR}/browser/home.html"
+    )
+
     add_executable(MinuanHtml6Tests
         tests/html6_pipeline_test.cpp
         src/html6_engine.cpp
@@ -93,6 +117,8 @@ endif()
 
 install(TARGETS MinuanBrowser RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(
-    FILES "${PROJECT_SOURCE_DIR}/browser/websites.json"
+    FILES
+        "${PROJECT_SOURCE_DIR}/browser/websites.json"
+        "${PROJECT_SOURCE_DIR}/browser/home.html"
     DESTINATION ${CMAKE_INSTALL_BINDIR}
 )

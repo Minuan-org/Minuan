@@ -32,13 +32,13 @@ private:
     void createTab(const QUrl& initialUrl = QUrl(QStringLiteral("about:blank")));
     void closeTab(int index);
     void navigateAddress();
+    void showHomePage(TabRuntime* tab);
     void openLocalHtml6();
     void loadHtml6File(const QString& path);
     void updateCurrentTab();
     void updateNavigationActions();
     bool loadWebsites();
     bool isAllowedUrl(const QUrl& url) const;
-    bool isAllowedHost(const QString& host) const;
     TabRuntime* currentTab();
 
     QTabWidget* tabs_ = nullptr;
@@ -51,6 +51,5 @@ private:
     QAction* stopAction_ = nullptr;
 
     QSet<QString> allowedHosts_;
-    QUrl homeUrl_;
     QHash<QWidget*, TabRuntime> tabRuntimes_;
 };

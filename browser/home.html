@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10162f">
+  <title>SimVerse | Minuan</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1024;
+      --panel: rgba(24, 34, 68, .78);
+      --panel-border: rgba(145, 166, 255, .18);
+      --text: #f6f7ff;
+      --muted: #aeb9dc;
+      --cyan: #57e3f2;
+      --violet: #a68bff;
+      --gold: #ffc978;
+    }
+    * { box-sizing: border-box; }
+    html { min-height: 100%; background: var(--bg); }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background:
+        radial-gradient(ellipse at 12% 12%, rgba(83, 91, 210, .32), transparent 36rem),
+        radial-gradient(ellipse at 92% 24%, rgba(35, 189, 220, .19), transparent 34rem),
+        linear-gradient(145deg, #0b1024 0%, #12183a 52%, #0b1c35 100%);
+    }
+    a { color: inherit; }
+    .shell { width: min(1120px, calc(100% - 48px)); margin: 0 auto; padding: 34px 0 48px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 64px; }
+    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .mark {
+      width: 42px; height: 42px; display: grid; place-items: center;
+      border: 1px solid rgba(87, 227, 242, .65); border-radius: 14px;
+      background: linear-gradient(145deg, rgba(87, 227, 242, .22), rgba(166, 139, 255, .22));
+      box-shadow: 0 0 28px rgba(87, 227, 242, .12);
+      color: var(--cyan); font-size: 22px; font-weight: 800;
+    }
+    .brand-name { display: block; letter-spacing: .16em; font-size: 14px; font-weight: 800; }
+    .brand-sub { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; letter-spacing: .08em; }
+    .top-note { color: var(--muted); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+    .hero { max-width: 760px; margin: 0 0 34px; }
+    .eyebrow { color: var(--cyan); font-size: 12px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; }
+    h1 { margin: 14px 0 16px; font-size: clamp(40px, 7vw, 70px); line-height: .98; letter-spacing: -.055em; }
+    h1 span { color: var(--cyan); }
+    .intro { max-width: 640px; color: var(--muted); font-size: 17px; line-height: 1.65; }
+    .search-wrap {
+      display: flex; align-items: center; gap: 12px; max-width: 760px;
+      padding: 9px; margin: 28px 0 56px; border: 1px solid rgba(130, 160, 230, .28);
+      border-radius: 17px; background: rgba(7, 12, 29, .64);
+      box-shadow: 0 18px 60px rgba(0, 0, 0, .22);
+    }
+    .search-icon { padding-left: 12px; color: var(--cyan); font-size: 21px; }
+    .search-wrap input {
+      flex: 1; min-width: 0; border: 0; outline: 0; background: transparent;
+      color: var(--text); font: inherit; padding: 12px 4px;
+    }
+    .search-wrap input::placeholder { color: #8f9abd; }
+    .search-wrap button {
+      border: 0; border-radius: 11px; padding: 12px 20px; cursor: pointer;
+      color: #061523; background: linear-gradient(110deg, var(--cyan), #9bf2d5);
+      font: inherit; font-weight: 800;
+    }
+    .section-head { display: flex; justify-content: space-between; align-items: end; gap: 18px; margin-bottom: 18px; }
+    h2 { margin: 0; font-size: 22px; letter-spacing: -.02em; }
+    .section-sub { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .card {
+      position: relative; min-height: 190px; overflow: hidden; padding: 24px;
+      border: 1px solid var(--panel-border); border-radius: 20px;
+      background: linear-gradient(145deg, rgba(28, 42, 82, .88), var(--panel));
+      box-shadow: 0 16px 42px rgba(0, 0, 0, .16);
+    }
+    .card::after {
+      content: ""; position: absolute; width: 170px; height: 170px; right: -62px; bottom: -95px;
+      border-radius: 50%; border: 1px solid rgba(87, 227, 242, .14);
+      box-shadow: 0 0 0 22px rgba(87, 227, 242, .025), 0 0 0 48px rgba(87, 227, 242, .02);
+      pointer-events: none;
+    }
+    .card-link { display: block; height: 100%; text-decoration: none; }
+    .card-link:hover h3 { color: var(--cyan); }
+    .icon { display: inline-grid; width: 42px; height: 42px; place-items: center; border-radius: 13px; background: rgba(87, 227, 242, .11); color: var(--cyan); font-size: 21px; }
+    .icon.violet { color: var(--violet); background: rgba(166, 139, 255, .13); }
+    .icon.gold { color: var(--gold); background: rgba(255, 201, 120, .12); }
+    h3 { margin: 18px 0 8px; font-size: 19px; transition: color .15s ease; }
+    .card p { max-width: 440px; margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+    .card .action { display: inline-block; margin-top: 18px; color: var(--cyan); font-size: 13px; font-weight: 800; }
+    .soon { display: inline-block; margin-top: 14px; padding: 5px 9px; border: 1px solid rgba(255, 201, 120, .3); border-radius: 30px; color: var(--gold); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+    .note {
+      display: flex; align-items: center; gap: 14px; margin-top: 22px; padding: 18px 20px;
+      border: 1px solid rgba(166, 139, 255, .2); border-radius: 16px;
+      background: rgba(20, 25, 54, .62); color: var(--muted); font-size: 13px; line-height: 1.55;
+    }
+    .note strong { color: var(--text); }
+    footer { margin-top: 42px; padding-top: 20px; border-top: 1px solid rgba(145, 166, 255, .13); color: #8795bc; font-size: 12px; }
+    @media (max-width: 700px) {
+      .shell { width: min(100% - 28px, 580px); padding-top: 22px; }
+      .topbar { margin-bottom: 42px; }
+      .top-note { display: none; }
+      .grid { grid-template-columns: 1fr; }
+      .search-wrap { margin-bottom: 40px; }
+      .card { min-height: 170px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="minuan://home" aria-label="SimVerse home">
+        <span class="mark">S</span>
+        <span><span class="brand-name">SIMVERSE</span><span class="brand-sub">THE WORLD OF IDEAS</span></span>
+      </a>
+      <span class="top-note">Your gateway · powered by Minuan</span>
+    </header>
+
+    <section class="hero">
+      <div class="eyebrow">A universe to explore and create</div>
+      <h1>Step into<br><span>SimVerse.</span></h1>
+      <p class="intro">One starting point for ideas, tools and creations. Explore what SimVerse is becoming, make something of your own, and discover the projects bringing it to life.</p>
+    </section>
+
+    <form class="search-wrap" action="https://www.google.co.uk/search" method="get">
+      <span class="search-icon" aria-hidden="true">⌕</span>
+      <input type="search" name="q" placeholder="Search the web…" aria-label="Search the web" required>
+      <button type="submit">Search</button>
+    </form>
+
+    <section aria-labelledby="explore-title">
+      <div class="section-head">
+        <div><h2 id="explore-title">Choose your next destination</h2><p class="section-sub">A few places to begin your journey.</p></div>
+      </div>
+      <div class="grid">
+        <article class="card">
+          <a class="card-link" href="https://github.com/Minuan-org/Minuan/blob/main/SIMVERSE_PETITION.md">
+            <span class="icon">✦</span>
+            <h3>Discover SimVerse</h3>
+            <p>Read the ideas behind SimVerse: a place for children to imagine, build, learn and share.</p>
+            <span class="action">Explore the vision →</span>
+          </a>
+        </article>
+
+        <article class="card">
+          <a class="card-link" href="minuan://open-html6">
+            <span class="icon violet">⌘</span>
+            <h3>Creator's Workshop</h3>
+            <p>Open an HTML6 or HTML file from your computer and experiment with your own creations.</p>
+            <span class="action">Open a project →</span>
+          </a>
+        </article>
+
+        <article class="card">
+          <span class="icon gold">◇</span>
+          <h3>SimVerse App Store</h3>
+          <p>A place for SimVerse apps and creations. The catalogue is still being built, so there are no apps to install yet.</p>
+          <span class="soon">In development</span>
+        </article>
+
+        <article class="card">
+          <a class="card-link" href="https://github.com/Minuan-org/Sunay">
+            <span class="icon violet">◉</span>
+            <h3>Meet Sunay</h3>
+            <p>Discover the rendering technology that helps Minuan display web pages and HTML6 creations.</p>
+            <span class="action">Explore Sunay →</span>
+          </a>
+        </article>
+      </div>
+    </section>
+
+    <aside class="note">
+      <span class="icon">i</span>
+      <span><strong>SimVerse is growing.</strong> Some destinations are ready to explore; others are still being created. Minuan only opens websites that have been added to its approved-sites list.</span>
+    </aside>
+
+    <footer>
+      MINUAN · YOUR SIMVERSE GATEWAY · Built for exploring and creating.
+      <a href="https://github.com/Minuan-org/Minuan">About Minuan</a>
+    </footer>
+  </main>
+</body>
+</html>

@@ -6,7 +6,7 @@ on:
       tag:
         description: "Version tag for the Minuan release"
         required: true
-        default: "v1.0.1"
+        default: "v1.1.0"
         type: string
       source_ref:
         description: "Branch or commit to build from"
@@ -88,9 +88,10 @@ jobs:
             - Tabbed browser window and navigation controls
             - HTTPS allowed-site filtering, including Google UK and Google.com
             - Google search directly from the address bar
-            - Dark navy and blue browser interface with cyan highlights
-            - Local HTML6 document opening
-            - Initial HTML6-to-HTML conversion pipeline
+            - Built-in SimVerse gateway home screen
+            - Local HTML6 project opening from the home screen
+            - HTML6-to-HTML conversion pipeline
+            - Sunay rendering pipeline with Qt WebEngine / Chromium
             - Windows x64 package with deployed Qt runtime
 
             ### Development status

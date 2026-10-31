@@ -2,6 +2,7 @@
 
 #include "dom_processor.hpp"
 #include "html6_engine.hpp"
+#include "navigation_utils.hpp"
 #include "sunay/rendering_pipeline.hpp"
 #include "utils.hpp"
 
@@ -22,7 +23,6 @@
 #include <QTabWidget>
 #include <QToolBar>
 #include <QUrl>
-#include <QUrlQuery>
 #include <QVBoxLayout>
 #include <QWebEngineHistory>
 #include <QWebEnginePage>
@@ -36,36 +36,39 @@ namespace {
 class SafeWebPage final : public QWebEnginePage {
 public:
     using BlockedHandler = std::function<void(const QUrl&)>;
+    using InternalHandler = std::function<void(const QUrl&)>;
 
     SafeWebPage(const QSet<QString>& allowedHosts,
                 BlockedHandler blockedHandler,
+                InternalHandler internalHandler,
                 QObject* parent = nullptr)
         : QWebEnginePage(parent),
           allowedHosts_(allowedHosts),
-          blockedHandler_(std::move(blockedHandler)) {}
+          blockedHandler_(std::move(blockedHandler)),
+          internalHandler_(std::move(internalHandler)) {}
 
 protected:
     bool acceptNavigationRequest(const QUrl& url,
                                  QWebEnginePage::NavigationType type,
                                  bool isMainFrame) override {
-        Q_UNUSED(type);
-        Q_UNUSED(isMainFrame);
+        if (url.scheme().compare(QStringLiteral("minuan"),
+                                 Qt::CaseInsensitive) == 0) {
+            if (isMainFrame &&
+                type == QWebEnginePage::NavigationTypeLinkClicked &&
+                internalHandler_) {
+                internalHandler_(url);
+            }
+            return false;
+        }
 
         if (url.scheme() == QStringLiteral("about") &&
             url.toString() == QStringLiteral("about:blank")) {
             return true;
         }
 
-        const QString scheme = url.scheme().toLower();
-        const QString host = url.host().toLower();
-        for (const QString& allowed : allowedHosts_) {
-            if (host == allowed || host.endsWith(QStringLiteral(".") + allowed)) {
-                if (scheme == QStringLiteral("https")) {
-                    return QWebEnginePage::acceptNavigationRequest(
-                        url, type, isMainFrame);
-                }
-                break;
-            }
+        if (NavigationUtils::isAllowedHttpsUrl(url, allowedHosts_)) {
+            return QWebEnginePage::acceptNavigationRequest(
+                url, type, isMainFrame);
         }
 
         if (blockedHandler_) blockedHandler_(url);
@@ -75,21 +78,8 @@ protected:
 private:
     QSet<QString> allowedHosts_;
     BlockedHandler blockedHandler_;
+    InternalHandler internalHandler_;
 };
-
-QString cleanHost(QString host) {
-    host = host.trimmed().toLower();
-    if (host.startsWith(QStringLiteral("www."))) {
-        host.remove(0, 4);
-    }
-    while (host.startsWith(QStringLiteral("*."))) {
-        host.remove(0, 2);
-    }
-    while (host.endsWith(QLatin1Char('.'))) {
-        host.chop(1);
-    }
-    return host;
-}
 
 } // namespace
 
@@ -99,9 +89,7 @@ BrowserWindow::BrowserWindow() {
 
     const bool sitesLoaded = loadWebsites();
     buildUi();
-    createTab(homeUrl_.isEmpty()
-                  ? QUrl(QStringLiteral("about:blank"))
-                  : homeUrl_);
+    createTab(QUrl(QStringLiteral("about:blank")));
 
     if (!sitesLoaded) {
         statusBar()->showMessage(
@@ -252,9 +240,7 @@ QProgressBar::chunk {
         if (auto* tab = currentTab()) tab->renderer->stop();
     });
     connect(homeAction, &QAction::triggered, this, [this]() {
-        if (!homeUrl_.isEmpty()) {
-            if (auto* tab = currentTab()) tab->renderer->navigate(homeUrl_);
-        }
+        showHomePage(currentTab());
     });
     connect(goAction, &QAction::triggered, this, &BrowserWindow::navigateAddress);
     connect(addressBar_, &QLineEdit::returnPressed,
@@ -323,27 +309,14 @@ bool BrowserWindow::loadWebsites() {
             continue;
         }
 
-        allowedHosts_.insert(cleanHost(url.host()));
-        if (homeUrl_.isEmpty()) homeUrl_ = url;
+        allowedHosts_.insert(NavigationUtils::cleanHost(url.host()));
     }
 
     return !allowedHosts_.isEmpty();
 }
 
-bool BrowserWindow::isAllowedHost(const QString& candidate) const {
-    const QString host = candidate.toLower();
-    for (const QString& allowed : allowedHosts_) {
-        if (host == allowed || host.endsWith(QStringLiteral(".") + allowed)) {
-            return true;
-        }
-    }
-    return false;
-}
-
 bool BrowserWindow::isAllowedUrl(const QUrl& url) const {
-    return url.isValid() &&
-           url.scheme() == QStringLiteral("https") &&
-           isAllowedHost(url.host());
+    return NavigationUtils::isAllowedHttpsUrl(url, allowedHosts_);
 }
 
 void BrowserWindow::createTab(const QUrl& initialUrl) {
@@ -359,6 +332,16 @@ void BrowserWindow::createTab(const QUrl& initialUrl) {
             statusLabel_->setText(
                 tr("Blocked navigation outside the allowed-site list: %1")
                     .arg(blockedUrl.toDisplayString()));
+        },
+        [this](const QUrl& internalUrl) {
+            const QString action = internalUrl.host().toLower();
+            if (action == QStringLiteral("home")) {
+                showHomePage(currentTab());
+            } else if (action == QStringLiteral("open-html6")) {
+                openLocalHtml6();
+            } else {
+                statusLabel_->setText(tr("That Minuan action is not available."));
+            }
         },
         view);
     view->setPage(page);
@@ -420,7 +403,10 @@ void BrowserWindow::createTab(const QUrl& initialUrl) {
     connect(view, &QWebEngineView::urlChanged,
             this, [this, tabWidget](const QUrl& url) {
                 if (tabs_->currentWidget() == tabWidget) {
-                    addressBar_->setText(url.toDisplayString());
+                    addressBar_->setText(
+                        url.toString() == QStringLiteral("about:blank")
+                            ? QStringLiteral("simverse://home")
+                            : url.toDisplayString());
                     updateNavigationActions();
                 }
             });
@@ -434,7 +420,10 @@ void BrowserWindow::createTab(const QUrl& initialUrl) {
             renderer->navigate(initialUrl);
         } else {
             statusLabel_->setText(tr("The configured start URL is not allowed."));
+            showHomePage(currentTab());
         }
+    } else {
+        showHomePage(currentTab());
     }
 
     updateCurrentTab();
@@ -466,24 +455,21 @@ void BrowserWindow::navigateAddress() {
     const QString enteredText = addressBar_->text().trimmed();
     if (enteredText.isEmpty()) return;
 
-    QUrl url;
-    const bool looksLikeAddress =
-        enteredText.contains(QStringLiteral("://")) ||
-        enteredText.contains(QLatin1Char('.')) ||
-        enteredText.startsWith(QStringLiteral("localhost"),
-                               Qt::CaseInsensitive);
+    if (enteredText.compare(QStringLiteral("simverse://home"),
+                            Qt::CaseInsensitive) == 0) {
+        showHomePage(currentTab());
+        return;
+    }
+    if (enteredText.compare(QStringLiteral("minuan://open-html6"),
+                            Qt::CaseInsensitive) == 0) {
+        openLocalHtml6();
+        return;
+    }
 
-    if (!looksLikeAddress || enteredText.contains(QLatin1Char(' '))) {
-        url = QUrl(QStringLiteral("https://www.google.co.uk/search"));
-        QUrlQuery query;
-        query.addQueryItem(QStringLiteral("q"), enteredText);
-        url.setQuery(query);
-    } else {
-        url = QUrl::fromUserInput(enteredText);
-        if (url.scheme() == QStringLiteral("http") &&
-            !enteredText.contains(QStringLiteral("://"))) {
-            url.setScheme(QStringLiteral("https"));
-        }
+    const QUrl url = NavigationUtils::resolveAddressInput(enteredText);
+    if (!url.isValid() || url.isEmpty()) {
+        statusLabel_->setText(tr("Enter a website address or a search."));
+        return;
     }
     if (url.scheme() == QStringLiteral("http")) {
         statusLabel_->setText(tr("Only HTTPS sites are permitted."));
@@ -497,6 +483,28 @@ void BrowserWindow::navigateAddress() {
     }
 
     if (auto* tab = currentTab()) tab->renderer->navigate(url);
+}
+
+void BrowserWindow::showHomePage(TabRuntime* tab) {
+    if (!tab || !tab->renderer) return;
+
+    QFile file(QCoreApplication::applicationDirPath()
+               + QStringLiteral("/home.html"));
+    if (!file.open(QIODevice::ReadOnly)) {
+        statusLabel_->setText(
+            tr("The SimVerse home page could not be opened. Reinstall Minuan."));
+        return;
+    }
+
+    const QByteArray page = file.readAll();
+    if (page.isEmpty()) {
+        statusLabel_->setText(tr("The SimVerse home page is empty."));
+        return;
+    }
+
+    tab->renderer->renderHtml(QString::fromUtf8(page), QUrl(QStringLiteral("about:blank")));
+    addressBar_->setText(QStringLiteral("simverse://home"));
+    statusLabel_->setText(tr("Welcome to SimVerse."));
 }
 
 void BrowserWindow::openLocalHtml6() {
@@ -557,7 +565,10 @@ void BrowserWindow::updateCurrentTab() {
     if (!tab) return;
 
     const QUrl url = tab->view->url();
-    addressBar_->setText(url.toDisplayString());
+    addressBar_->setText(
+        url.toString() == QStringLiteral("about:blank")
+            ? QStringLiteral("simverse://home")
+            : url.toDisplayString());
     const QString title = tab->view->title();
     setWindowTitle(title.isEmpty()
                        ? QStringLiteral("Minuan")

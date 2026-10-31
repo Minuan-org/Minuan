@@ -32,5 +32,20 @@ jobs:
       - name: Build
         run: cmake --build out/build --config Release --parallel
 
+      - name: Test installed package files
+        shell: pwsh
+        run: |
+          cmake --install out/build --config Release --prefix smoke-install
+          $requiredFiles = @(
+            "smoke-install/bin/Minuan.exe",
+            "smoke-install/bin/websites.json",
+            "smoke-install/bin/home.html"
+          )
+          foreach ($file in $requiredFiles) {
+            if (!(Test-Path $file)) {
+              throw "Required installed file is missing: $file"
+            }
+          }
+
       - name: Test HTML6 conversion
         run: ctest --test-dir out/build -C Release --output-on-failure
