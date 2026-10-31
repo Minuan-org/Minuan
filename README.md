@@ -74,7 +74,10 @@ file before Minuan can open it.
 On Windows, build/build.bat configures Visual Studio 2022, builds and tests
 the Release executable, then runs windeployqt to copy the Qt and Qt WebEngine
 runtime, resources and locale files beside the executable. The portable folder
-must stay together when moving Minuan to another computer.
+must stay together when moving Minuan to another computer. Windows also needs
+the Microsoft Visual C++ x64 Redistributable (version 14.28 or later). Get the
+official installer from https://aka.ms/vc14/vc_redist.x64.exe if it is not
+already installed.
 
 ## Open a local document
 

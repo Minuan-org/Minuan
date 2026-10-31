@@ -81,7 +81,7 @@ jobs:
           }
 
           # Keep WebEngine locale files: Chromium uses them at runtime.
-          & $windeployqt --release --compiler-runtime $executable
+          & $windeployqt --release --no-compiler-runtime $executable
           if ($LASTEXITCODE -ne 0) {
             exit $LASTEXITCODE
           }
@@ -117,6 +117,10 @@ jobs:
 
           @"
           MINUAN 1.1.0 — WINDOWS x64
+
+          Before starting Minuan, install the Microsoft Visual C++ x64 Redistributable
+          (version 14.28 or later) if it is not already installed:
+          https://aka.ms/vc14/vc_redist.x64.exe
 
           1. Extract the whole ZIP file into a folder.
           2. Open Minuan.exe from that folder.

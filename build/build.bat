@@ -52,7 +52,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-windeployqt --release --compiler-runtime "%APP%"
+windeployqt --release --no-compiler-runtime "%APP%"
 if errorlevel 1 (
     echo ERROR: Qt runtime deployment failed.
     exit /b 1
