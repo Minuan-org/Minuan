@@ -216,6 +216,13 @@ bool HTML6Validator::validateDocumentStructure(const HTML6AST* ast) {
                 valid = false;
             }
 
+            if ((tag == "mt" || tag == "styl" || tag == "scrpt") &&
+                parentTag != "hd" && parentTag != "head") {
+                addError("HTML6 <" + tag +
+                         "> definitions must be direct children of <hd>");
+                valid = false;
+            }
+
             if (tag == "srv") {
                 if (parentTag != "hd" && parentTag != "head") {
                     addError("HTML6 <srv> definitions must be direct children of <hd>");
