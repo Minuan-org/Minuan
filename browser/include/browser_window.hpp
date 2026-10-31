@@ -31,6 +31,8 @@ private:
         bool imagesEnabled = true;
         bool isLoading = false;
         int loadProgress = 0;
+        QString displayAddress;
+        bool keepDisplayAddress = false;
     };
 
     void buildUi();

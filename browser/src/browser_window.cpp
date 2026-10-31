@@ -503,7 +503,10 @@ void BrowserWindow::createTab(const QUrl& initialUrl) {
     options.localContentCanAccessRemoteUrls = false;
     renderer->setOptions(options);
 
-    tabRuntimes_.insert(tabWidget, TabRuntime{view, renderer, true, true, false, 0});
+    tabRuntimes_.insert(tabWidget, TabRuntime{
+        view, renderer, true, true, false, 0,
+        QStringLiteral("simverse://home"), true
+    });
 
     connect(page, &QWebEnginePage::windowCloseRequested, this, [this, tabWidget]() {
         const int index = tabs_->indexOf(tabWidget);
@@ -570,11 +573,23 @@ void BrowserWindow::createTab(const QUrl& initialUrl) {
 
     connect(view, &QWebEngineView::urlChanged,
             this, [this, tabWidget](const QUrl& url) {
+                auto it = tabRuntimes_.find(tabWidget);
+                QString displayAddress = url.toDisplayString();
+
+                if (it != tabRuntimes_.end()) {
+                    const bool internalBlank =
+                        url.toString() == QStringLiteral("about:blank");
+                    if (it->keepDisplayAddress &&
+                        (internalBlank || url.isLocalFile())) {
+                        displayAddress = it->displayAddress;
+                    } else {
+                        it->displayAddress = displayAddress;
+                        it->keepDisplayAddress = false;
+                    }
+                }
+
                 if (tabs_->currentWidget() == tabWidget) {
-                    addressBar_->setText(
-                        url.toString() == QStringLiteral("about:blank")
-                            ? QStringLiteral("simverse://home")
-                            : url.toDisplayString());
+                    addressBar_->setText(displayAddress);
                     updateNavigationActions();
                 }
             });
@@ -585,6 +600,11 @@ void BrowserWindow::createTab(const QUrl& initialUrl) {
     if (initialUrl.isValid() &&
         initialUrl != QUrl(QStringLiteral("about:blank"))) {
         if (isAllowedUrl(initialUrl)) {
+            auto it = tabRuntimes_.find(tabWidget);
+            if (it != tabRuntimes_.end()) {
+                it->displayAddress = initialUrl.toDisplayString();
+                it->keepDisplayAddress = false;
+            }
             renderer->navigate(initialUrl);
         } else {
             statusLabel_->setText(tr("The configured start URL is not allowed."));
@@ -650,7 +670,12 @@ void BrowserWindow::navigateAddress() {
         return;
     }
 
-    if (auto* tab = currentTab()) tab->renderer->navigate(url);
+    if (auto* tab = currentTab()) {
+        tab->displayAddress = url.toDisplayString();
+        tab->keepDisplayAddress = false;
+        addressBar_->setText(tab->displayAddress);
+        tab->renderer->navigate(url);
+    }
 }
 
 void BrowserWindow::showHomePage(TabRuntime* tab) {
@@ -670,8 +695,12 @@ void BrowserWindow::showHomePage(TabRuntime* tab) {
         return;
     }
 
+    tab->displayAddress = QStringLiteral("simverse://home");
+    tab->keepDisplayAddress = true;
     tab->renderer->renderHtml(QString::fromUtf8(page), QUrl(QStringLiteral("about:blank")));
-    addressBar_->setText(QStringLiteral("simverse://home"));
+    if (currentTab() == tab) {
+        addressBar_->setText(tab->displayAddress);
+    }
     statusLabel_->setText(tr("Welcome to SimVerse."));
 }
 
@@ -718,13 +747,15 @@ void BrowserWindow::loadHtml6File(const QString& path) {
         baseDirectory += QDir::separator();
     }
     const QUrl baseUrl = QUrl::fromLocalFile(baseDirectory);
+    tab->displayAddress = QUrl::fromLocalFile(path).toDisplayString();
+    tab->keepDisplayAddress = true;
     tab->renderer->renderHtml(QString::fromUtf8(
                                   html.data(), static_cast<int>(html.size())),
                               baseUrl);
 
     const int index = tabs_->currentIndex();
     if (index >= 0) tabs_->setTabText(index, QFileInfo(path).fileName().left(32));
-    addressBar_->setText(QUrl::fromLocalFile(path).toDisplayString());
+    addressBar_->setText(tab->displayAddress);
     statusLabel_->setText(tr("HTML6 converted and sent to Sunay."));
 }
 
@@ -733,10 +764,14 @@ void BrowserWindow::updateCurrentTab() {
     if (!tab) return;
 
     const QUrl url = tab->view->url();
-    addressBar_->setText(
-        url.toString() == QStringLiteral("about:blank")
-            ? QStringLiteral("simverse://home")
-            : url.toDisplayString());
+    if (tab->keepDisplayAddress &&
+        (url.toString() == QStringLiteral("about:blank") || url.isLocalFile())) {
+        addressBar_->setText(tab->displayAddress);
+    } else {
+        tab->displayAddress = url.toDisplayString();
+        tab->keepDisplayAddress = false;
+        addressBar_->setText(tab->displayAddress);
+    }
     const QString title = tab->view->title();
     setWindowTitle(title.isEmpty()
                        ? QStringLiteral("Minuan")
