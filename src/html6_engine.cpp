@@ -33,6 +33,22 @@ bool isVoidElement(const std::string& tag) {
                        [&tag](const char* name) { return tag == name; });
 }
 
+std::size_t findClosingTag(const std::string& loweredHtml,
+                           const std::string& tagName,
+                           std::size_t start) {
+    const std::string candidate = "</" + tagName;
+    std::size_t pos = loweredHtml.find(candidate, start);
+    while (pos != std::string::npos) {
+        const std::size_t boundary = pos + candidate.size();
+        if (boundary == loweredHtml.size() || loweredHtml[boundary] == '>' ||
+            loweredHtml[boundary] == '/' || isSpace(loweredHtml[boundary])) {
+            return pos;
+        }
+        pos = loweredHtml.find(candidate, pos + 2);
+    }
+    return std::string::npos;
+}
+
 std::string attributeValue(const Element& element,
                            const std::string& key,
                            const std::string& fallback = {}) {
@@ -183,8 +199,8 @@ std::shared_ptr<Element> HTML6Engine::parseElement(const std::string& html,
     if (element->tag_name == "script" || element->tag_name == "scrpt" ||
         element->tag_name == "style" || element->tag_name == "styl") {
         const std::string lowered = lowerCopy(html);
-        const std::string closing = "</" + element->tag_name;
-        const std::size_t end = lowered.find(closing, pos);
+        const std::size_t end =
+            findClosingTag(lowered, element->tag_name, pos);
         if (end == std::string::npos) {
             element->content = html.substr(pos);
             pos = html.size();
