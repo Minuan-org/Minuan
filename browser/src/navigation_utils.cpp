@@ -67,10 +67,24 @@ bool isAllowedHost(const QString& candidate,
 
 bool isAllowedHttpsUrl(const QUrl& url,
                        const QSet<QString>& allowedHosts) {
-    return url.isValid() &&
-           url.scheme().compare(QStringLiteral("https"),
-                                Qt::CaseInsensitive) == 0 &&
-           isAllowedHost(url.host(), allowedHosts);
+    if (!url.isValid() ||
+        url.scheme().compare(QStringLiteral("https"),
+                             Qt::CaseInsensitive) != 0 ||
+        url.host().isEmpty()) {
+        return false;
+    }
+
+    // Do not let an approved hostname hide credentials or another service port.
+    if (url.authority().contains(QLatin1Char('@'))) {
+        return false;
+    }
+
+    const int port = url.port(-1);
+    if (port != -1 && port != 443) {
+        return false;
+    }
+
+    return isAllowedHost(url.host(), allowedHosts);
 }
 
 } // namespace NavigationUtils

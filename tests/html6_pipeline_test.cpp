@@ -92,6 +92,22 @@ int main() {
                 rawBoundaryHtml.find("After raw tags") != std::string::npos,
                 "content after raw tags remains in the document")) return 1;
 
+    const std::string ordinaryHtml =
+        "<!DOCTYPE html><html><hd><title>Project</title></hd>"
+        "<bdy><main><figure class=\"card\" loading=\"lazy\" "
+        "aria-label=\"Example card\" data-kind=\"demo\">"
+        "<figcaption>Example</figcaption></figure>"
+        "<object data=\"player.dat\"><param name=\"autoplay\" value=\"0\"></object>"
+        "</main></bdy></html>";
+    Minuan::HTML6::HTML6Engine ordinaryEngine;
+    if (!expect(ordinaryEngine.parseDocument(ordinaryHtml),
+                "ordinary HTML with common semantic elements parses")) return 1;
+    Minuan::HTML6::HTML6Validator ordinaryValidator;
+    if (!expect(ordinaryValidator.validateDocumentStructure(ordinaryEngine.getAST()),
+                "common HTML tags and modern attributes pass validation")) return 1;
+    if (!expect(ordinaryValidator.getErrorCount() == 0,
+                "ordinary HTML produces no validation errors")) return 1;
+
     std::cout << "Minuan HTML6 pipeline checks passed.\n";
     return 0;
 }

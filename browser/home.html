@@ -4,6 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#10162f">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; form-action https://www.google.co.uk; base-uri 'none'; object-src 'none'">
   <title>SimVerse | Minuan</title>
   <style>
     :root {
@@ -153,10 +155,13 @@
         </article>
 
         <article class="card">
-          <span class="icon gold">◇</span>
-          <h3>SimVerse App Store</h3>
-          <p>A place for SimVerse apps and creations. The catalogue is still being built, so there are no apps to install yet.</p>
-          <span class="soon">In development</span>
+          <a class="card-link" href="https://github.com/Minuan-org/minuan-app-store">
+            <span class="icon gold">◇</span>
+            <h3>SimVerse App Store</h3>
+            <p>Explore the project catalogue. Its public website is being prepared; the catalogue source and current project list are available now.</p>
+            <span class="action">Explore the catalogue project →</span>
+            <span class="soon">In development</span>
+          </a>
         </article>
 
         <article class="card">

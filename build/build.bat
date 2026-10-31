@@ -47,8 +47,25 @@ if not exist "%APP%" (
 )
 
 where windeployqt >nul 2>&1
-if not errorlevel 1 (
-    windeployqt --no-translations "%APP%"
+if errorlevel 1 (
+    echo ERROR: windeployqt was not found. Add Qt's bin folder to PATH.
+    exit /b 1
+)
+
+windeployqt --release --no-compiler-runtime "%APP%"
+if errorlevel 1 (
+    echo ERROR: Qt runtime deployment failed.
+    exit /b 1
+)
+
+for %%I in ("%APP%") do set "APP_DIR=%%~dpI"
+if not exist "%APP_DIR%QtWebEngineProcess.exe" (
+    echo ERROR: Qt WebEngine process was not deployed beside Minuan.exe.
+    exit /b 1
+)
+if not exist "%APP_DIR%resources\qtwebengine_resources.pak" (
+    echo ERROR: Qt WebEngine Chromium resources were not deployed.
+    exit /b 1
 )
 
 echo.

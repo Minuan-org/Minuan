@@ -12,17 +12,21 @@ namespace {
 
 bool isStandardHtmlTag(const std::string& tag) {
     static const std::unordered_set<std::string> names{
-        "html", "head", "body", "title", "base", "link", "meta", "style",
-        "script", "noscript", "main", "header", "footer", "nav", "section",
-        "article", "aside", "div", "span", "p", "a", "button", "input",
-        "textarea", "select", "option", "label", "form", "fieldset",
-        "legend", "ul", "ol", "li", "dl", "dt", "dd", "table", "caption",
-        "thead", "tbody", "tfoot", "tr", "th", "td", "col", "colgroup",
-        "h1", "h2", "h3", "h4", "h5", "h6", "img", "picture", "source",
-        "audio", "video", "track", "canvas", "svg", "path", "br", "hr",
-        "pre", "code", "blockquote", "strong", "em", "small", "sub",
-        "sup", "details", "summary", "dialog", "progress", "meter",
-        "time", "mark", "iframe", "embed", "object", "param", "wbr"
+        "a", "abbr", "address", "area", "article", "aside", "audio", "b",
+        "base", "bdi", "bdo", "blockquote", "body", "br", "button", "canvas",
+        "caption", "cite", "code", "col", "colgroup", "data", "datalist", "dd",
+        "del", "details", "dfn", "dialog", "div", "dl", "dt", "em", "embed",
+        "fieldset", "figcaption", "figure", "footer", "form", "h1", "h2", "h3",
+        "h4", "h5", "h6", "head", "header", "hgroup", "hr", "html", "i",
+        "iframe", "img", "input", "ins", "kbd", "label", "legend", "li",
+        "link", "main", "map", "mark", "menu", "meta", "meter", "nav",
+        "noscript", "object", "ol", "optgroup", "option", "output", "p", "param",
+        "picture", "pre", "progress", "q", "rp", "rt", "ruby", "s", "samp",
+        "script", "search", "section", "select", "slot", "small", "source",
+        "span", "strong", "style", "sub", "summary", "sup", "svg", "path",
+        "table", "tbody", "td", "template", "textarea", "tfoot", "th",
+        "thead", "time", "title", "tr", "track", "u", "ul", "var", "video",
+        "wbr"
     };
     return names.find(tag) != names.end();
 }
@@ -35,15 +39,24 @@ bool isStandardHtmlAttribute(const std::string& attribute) {
 
     static const std::unordered_set<std::string> names{
         "id", "class", "title", "href", "src", "alt", "type", "name",
-        "value", "placeholder", "disabled", "required", "checked",
-        "selected", "readonly", "readOnly", "for", "action", "method",
-        "target", "rel", "style", "role", "width", "height", "tabindex",
-        "autocomplete", "download", "accept", "multiple", "min", "max",
-        "step", "rows", "cols", "content", "charset", "lang", "dir",
-        "hidden", "draggable", "spellcheck", "colspan", "rowspan",
-        "scope", "open", "controls", "autoplay", "muted", "loop",
-        "poster", "preload", "crossorigin", "defer", "async", "media",
-        "datetime", "loading", "decoding", "srcset", "sizes"
+        "value", "placeholder", "disabled", "required", "checked", "selected",
+        "readonly", "for", "action", "method", "target", "rel", "style", "role",
+        "width", "height", "tabindex", "autocomplete", "download", "accept",
+        "multiple", "min", "max", "step", "rows", "cols", "content", "charset",
+        "lang", "dir", "hidden", "draggable", "spellcheck", "colspan", "rowspan",
+        "scope", "open", "controls", "autoplay", "muted", "loop", "poster",
+        "preload", "crossorigin", "defer", "async", "media", "datetime",
+        "loading", "decoding", "srcset", "sizes", "data", "autofocus", "form",
+        "formaction", "formenctype", "formmethod", "formnovalidate", "formtarget",
+        "pattern", "size", "maxlength", "minlength", "inputmode", "enterkeyhint",
+        "contenteditable", "accesskey", "translate", "inert", "slot", "popover",
+        "popovertarget", "popovertargetaction", "cite", "start", "reversed",
+        "list", "kind", "srclang", "label", "playsinline", "usemap", "ismap",
+        "shape", "coords", "hreflang", "ping", "integrity", "nonce", "nomodule",
+        "referrerpolicy", "fetchpriority", "http-equiv", "xmlns", "viewbox",
+        "d", "fill", "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin",
+        "cx", "cy", "r", "x", "y", "x1", "y1", "x2", "y2", "transform",
+        "preserveaspectratio"
     };
     return names.find(attribute) != names.end();
 }

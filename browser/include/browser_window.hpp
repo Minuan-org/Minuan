@@ -2,6 +2,7 @@
 
 #include <QHash>
 #include <QMainWindow>
+#include <QString>
 #include <QSet>
 #include <QUrl>
 
@@ -31,6 +32,8 @@ private:
         bool imagesEnabled = true;
         bool isLoading = false;
         int loadProgress = 0;
+        QString displayAddress;
+        bool keepDisplayAddress = false;
     };
 
     void buildUi();
