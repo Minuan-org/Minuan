@@ -1,0 +1,91 @@
+name: Minuan Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing Minuan release tag to build and attach assets to"
+        required: true
+        default: "v1.0.0"
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout release source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.8.3"
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+          modules: "qtwebengine"
+          archives: "qtbase qtwebchannel qtdeclarative"
+          cache: true
+
+      - name: Configure
+        run: cmake -S . -B out/build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build out/build --config Release --parallel
+
+      - name: Test HTML6 conversion
+        run: ctest --test-dir out/build -C Release --output-on-failure
+
+      - name: Install Minuan
+        run: cmake --install out/build --config Release --prefix package
+
+      - name: Deploy Qt runtime and browser configuration
+        shell: pwsh
+        run: |
+          $executable = "package/bin/Minuan.exe"
+          if (!(Test-Path $executable)) {
+            throw "Minuan.exe was not produced by the install step."
+          }
+
+          New-Item -ItemType Directory -Force "package/bin" | Out-Null
+          Copy-Item "browser/websites.json" "package/bin/websites.json" -Force
+
+          $windeployqt = Join-Path $env:QT_ROOT_DIR "bin/windeployqt.exe"
+          if (!(Test-Path $windeployqt)) {
+            throw "windeployqt.exe was not found in the installed Qt directory."
+          }
+
+          & $windeployqt --release --compiler-runtime --no-translations $executable
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
+
+          Compress-Archive -Path "package/bin/*" -DestinationPath "Minuan-Windows-x64.zip" -Force
+
+      - name: Attach package and correct release notes
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ inputs.tag }}
+          name: Minuan ${{ inputs.tag }}
+          body: |
+            # Minuan ${{ inputs.tag }}
+
+            Minuan is a SimVerse browser powered by the Sunay rendering pipeline.
+
+            ### Included
+            - Tabbed browser window and navigation controls
+            - HTTPS allowed-site filtering
+            - Local HTML6 document opening
+            - Initial HTML6-to-HTML conversion pipeline
+            - Windows x64 package with deployed Qt runtime
+
+            ### Development status
+            This is an experimental early release. HTML6 support is still developing; CSS Next, the JS-squared runtime and HTML6 server runtime are not complete.
+          files: Minuan-Windows-x64.zip
+          fail_on_unmatched_files: true
