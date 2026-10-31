@@ -90,12 +90,24 @@ bool HTML6Validator::validateAttributeName(const std::string& attr) {
 }
 
 bool HTML6Validator::validateServerRules(const ServerDefinition& server) {
+    bool valid = true;
+    if (server.id.empty()) {
+        addError("HTML6 server is missing its srvd identifier");
+        valid = false;
+    }
     if (!server.cloud && server.multiplayer) {
         addError("Server '" + server.id +
                  "' is local (cld=false) but has multiplayer enabled");
-        return false;
+        valid = false;
     }
-    return true;
+    for (const auto& handler : server.handlers) {
+        if (handler.path.empty()) {
+            addError("Server '" + server.id +
+                     "' contains an nrq handler without a pth path");
+            valid = false;
+        }
+    }
+    return valid;
 }
 
 bool HTML6Validator::validateDocumentStructure(const HTML6AST* ast) {
@@ -109,29 +121,174 @@ bool HTML6Validator::validateDocumentStructure(const HTML6AST* ast) {
     // A missing doctype is a warning, so it does not make the document unusable.
     validateDoctype(ast->body.raw_html);
 
-    for (const auto& server : ast->head.servers) {
-        if (!validateServerRules(server)) valid = false;
-    }
-
-    std::function<void(const std::shared_ptr<Element>&)> validateTree =
+    const auto document = ast->document_root_element
+                              ? ast->document_root_element
+                              : ast->body.root_element;
+    bool usesHtml6 = false;
+    std::function<void(const std::shared_ptr<Element>&)> detectHtml6 =
         [&](const std::shared_ptr<Element>& element) {
             if (!element) return;
-            if (element->tag_name != "#document" &&
-                !validateElement(*element)) {
+            const std::string& tag = element->tag_name;
+            if (tag == "hd" || tag == "bdy" || tag == "mt" ||
+                tag == "styl" || tag == "scrpt" || tag == "srv" ||
+                tag == "nrq") {
+                usesHtml6 = true;
+            }
+            for (const auto& child : element->children) detectHtml6(child);
+        };
+    detectHtml6(document);
+
+    // HTML6 documents use one root element with the system section before the UI.
+    if (usesHtml6) {
+        std::vector<std::shared_ptr<Element>> roots;
+        if (document) {
+            for (const auto& child : document->children) {
+                if (child && (child->tag_name == "html" ||
+                              child->tag_name == "html6")) {
+                    roots.push_back(child);
+                }
+            }
+        }
+
+        if (roots.size() != 1) {
+            addError("HTML6 documents must have exactly one top-level <html> root");
+            valid = false;
+        } else {
+            const auto& root = roots.front();
+            std::size_t headCount = 0;
+            std::size_t bodyCount = 0;
+            std::size_t headPosition = root->children.size();
+            std::size_t bodyPosition = root->children.size();
+
+            for (std::size_t i = 0; i < root->children.size(); ++i) {
+                const auto& child = root->children[i];
+                if (!child) continue;
+                if (child->tag_name == "hd" || child->tag_name == "head") {
+                    ++headCount;
+                    headPosition = i;
+                } else if (child->tag_name == "bdy" ||
+                           child->tag_name == "body") {
+                    ++bodyCount;
+                    bodyPosition = i;
+                }
+            }
+
+            if (headCount != 1) {
+                addError("HTML6 documents must have exactly one direct <hd> section");
                 valid = false;
             }
-            for (const auto& child : element->children) {
-                validateTree(child);
+            if (bodyCount != 1) {
+                addError("HTML6 documents must have exactly one direct <bdy> section");
+                valid = false;
             }
-        };
-    validateTree(ast->body.root_element);
-
-    for (const auto& meta : ast->head.metadata) {
-        if (hasVowels(meta.name)) {
-            addWarning("Metadata name '" + meta.name + "' contains vowels");
+            if (headCount == 1 && bodyCount == 1 &&
+                headPosition >= bodyPosition) {
+                addError("The HTML6 <hd> section must appear before <bdy>");
+                valid = false;
+            }
         }
     }
 
+    std::unordered_set<std::string> serverIds;
+    std::function<void(const std::shared_ptr<Element>&, const std::string&, bool)> validateTree =
+        [&](const std::shared_ptr<Element>& element,
+            const std::string& parentTag, bool insideBody) {
+            if (!element) return;
+
+            const std::string& tag = element->tag_name;
+            if (tag != "#document" && !validateElement(*element)) {
+                valid = false;
+            }
+
+            const bool bodyContext = insideBody || tag == "bdy" || tag == "body";
+            if (insideBody &&
+                (tag == "srv" || tag == "styl" || tag == "scrpt" ||
+                 tag == "mt" || tag == "nrq")) {
+                addError("HTML6 system tag <" + tag +
+                         "> must not appear inside <bdy>");
+                valid = false;
+            }
+
+            if ((tag == "hd" || tag == "bdy") &&
+                parentTag != "html" && parentTag != "html6") {
+                addError("HTML6 <" + tag +
+                         "> must be a direct child of the document root");
+                valid = false;
+            }
+
+            if ((tag == "mt" || tag == "styl" || tag == "scrpt") &&
+                parentTag != "hd" && parentTag != "head") {
+                addError("HTML6 <" + tag +
+                         "> definitions must be direct children of <hd>");
+                valid = false;
+            }
+
+            if (tag == "srv") {
+                if (parentTag != "hd" && parentTag != "head") {
+                    addError("HTML6 <srv> definitions must be direct children of <hd>");
+                    valid = false;
+                }
+
+                const auto id = element->attributes.find("srvd");
+                if (id == element->attributes.end() || id->second.empty()) {
+                    addError("HTML6 <srv> is missing its srvd identifier");
+                    valid = false;
+                } else if (!serverIds.insert(id->second).second) {
+                    addError("HTML6 server identifier '" + id->second +
+                             "' is declared more than once");
+                    valid = false;
+                }
+
+                const auto cloud = element->attributes.find("cld");
+                if (cloud == element->attributes.end() ||
+                    (cloud->second != "true" && cloud->second != "false")) {
+                    addError("HTML6 <srv> must set cld to either true or false");
+                    valid = false;
+                }
+
+                const auto multiplayer = element->attributes.find("mltplyr");
+                if (cloud != element->attributes.end() &&
+                    cloud->second == "false" &&
+                    multiplayer != element->attributes.end()) {
+                    addError("A local HTML6 server (cld=false) must not have mltplyr");
+                    valid = false;
+                } else if (multiplayer != element->attributes.end() &&
+                           multiplayer->second != "true" &&
+                           multiplayer->second != "false") {
+                    addError("HTML6 srv mltplyr must be either true or false");
+                    valid = false;
+                } else if (cloud != element->attributes.end() &&
+                           cloud->second == "true" &&
+                           multiplayer != element->attributes.end() &&
+                           multiplayer->second == "true") {
+                    const std::string serverName =
+                        id != element->attributes.end() ? id->second : "(unnamed)";
+                    addWarning("Server '" + serverName +
+                               "' requests Chrono multiplayer; Minuan currently stores "
+                               "the definition but does not run Chrono");
+                }
+            }
+
+            if (tag == "nrq") {
+                if (parentTag != "srv") {
+                    addError("HTML6 <nrq> handlers must be direct children of <srv>");
+                    valid = false;
+                }
+                const auto path = element->attributes.find("pth");
+                if (path == element->attributes.end() || path->second.empty()) {
+                    addError("HTML6 <nrq> is missing its pth request path");
+                    valid = false;
+                }
+            }
+
+            for (const auto& child : element->children) {
+                validateTree(child, tag, bodyContext);
+            }
+        };
+    validateTree(document, "", false);
+
+    // Keep metadata names as values: names such as "title" and "public or not"
+    // are explicitly valid in the HTML6 specification.
     for (const auto& style : ast->head.styles) {
         if (style.version.empty()) addWarning("Style missing version attribute");
         if (style.src.empty()) addWarning("Style missing src attribute");
@@ -140,6 +297,10 @@ bool HTML6Validator::validateDocumentStructure(const HTML6AST* ast) {
     for (const auto& script : ast->head.scripts) {
         if (script.version.empty()) addWarning("Script missing version attribute");
         if (script.src.empty()) addWarning("Script missing src attribute");
+    }
+
+    for (const auto& server : ast->head.servers) {
+        if (!validateServerRules(server)) valid = false;
     }
 
     return valid;

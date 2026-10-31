@@ -57,8 +57,8 @@ int main() {
     if (!expect(!html.empty(), "HTML conversion returns a document")) return 1;
     if (!expect(html.find("<head>") != std::string::npos, "hd becomes head")) return 1;
     if (!expect(html.find("<body>") != std::string::npos, "bdy becomes body")) return 1;
-    if (!expect(html.find("<meta name=\"title\" content=\"Minuan Test\">") != std::string::npos,
-                "mt becomes meta")) return 1;
+    if (!expect(html.find("<title>Minuan Test</title>") != std::string::npos,
+                "HTML6 title metadata becomes the browser tab title")) return 1;
     if (!expect(html.find("<link rel=\"stylesheet\" href=\"site.css\"") != std::string::npos,
                 "external styl becomes a stylesheet link")) return 1;
     if (!expect(html.find("<script") != std::string::npos &&
@@ -107,6 +107,82 @@ int main() {
                 "common HTML tags and modern attributes pass validation")) return 1;
     if (!expect(ordinaryValidator.getErrorCount() == 0,
                 "ordinary HTML produces no validation errors")) return 1;
+
+    const std::string ssoSource =
+        "<!DOCTYPE><html><hd></hd><bdy>"
+        "<bttn s_ss=\"true\" ss=\"Google\">Sign in with </bttn>"
+        "</bdy></html>";
+    Minuan::HTML6::HTML6Engine ssoEngine;
+    if (!expect(ssoEngine.parseDocument(ssoSource),
+                "HTML6 SSO button sample parses")) return 1;
+    Minuan::HTML6::DOMProcessor ssoProcessor;
+    const std::string ssoHtml = ssoProcessor.generateHTML(ssoEngine.getAST());
+    if (!expect(ssoHtml.find("Sign in with Google") != std::string::npos,
+                "s_ss and ss combine the provider name with the button label")) return 1;
+
+    const std::string serverSource =
+        "<!DOCTYPE><html><hd>"
+        "<srv srvd=\"cloud\" cld=\"true\" mltplyr=\"true\">"
+        "<nrq pth=\"/api/status\">{\"ok\":true}</nrq>"
+        "</srv></hd><bdy><p>Server example</p></bdy></html>";
+    Minuan::HTML6::HTML6Engine serverEngine;
+    if (!expect(serverEngine.parseDocument(serverSource),
+                "HTML6 server declaration parses")) return 1;
+    if (!expect(serverEngine.getAST()->head.servers.size() == 1,
+                "server declarations are retained in the AST")) return 1;
+    if (!expect(serverEngine.findHandler("cloud", "/api/status") != nullptr,
+                "server request handlers are available to the native engine")) return 1;
+    Minuan::HTML6::HTML6Validator serverValidator;
+    if (!expect(serverValidator.validateDocumentStructure(serverEngine.getAST()),
+                "valid cloud server declaration passes structural validation")) return 1;
+    if (!expect(serverValidator.getErrorCount() == 0,
+                "valid server declaration has no validation errors")) return 1;
+    if (!expect(serverValidator.getWarningCount() > 0,
+                "Chrono multiplayer support is clearly reported as unavailable")) return 1;
+
+    const std::string invalidLocalServer =
+        "<!DOCTYPE><html><hd>"
+        "<srv srvd=\"local\" cld=\"false\" mltplyr=\"false\"></srv>"
+        "</hd><bdy></bdy></html>";
+    Minuan::HTML6::HTML6Engine invalidServerEngine;
+    if (!expect(invalidServerEngine.parseDocument(invalidLocalServer),
+                "invalid local server sample still parses for diagnostics")) return 1;
+    Minuan::HTML6::HTML6Validator invalidServerValidator;
+    if (!expect(!invalidServerValidator.validateDocumentStructure(
+                    invalidServerEngine.getAST()),
+                "local servers cannot declare mltplyr, even when false")) return 1;
+
+    const std::string misplacedServer =
+        "<!DOCTYPE><html><hd></hd><bdy>"
+        "<srv srvd=\"misplaced\" cld=\"false\"></srv>"
+        "</bdy></html>";
+    Minuan::HTML6::HTML6Engine misplacedEngine;
+    if (!expect(misplacedEngine.parseDocument(misplacedServer),
+                "misplaced server sample parses for diagnostics")) return 1;
+    Minuan::HTML6::HTML6Validator misplacedValidator;
+    if (!expect(!misplacedValidator.validateDocumentStructure(misplacedEngine.getAST()),
+                "server definitions inside the visible body are rejected")) return 1;
+
+    const std::string misplacedScript =
+        "<!DOCTYPE><html><hd></hd><bdy></bdy>"
+        "<scrpt src=\"outside.js\"></scrpt></html>";
+    Minuan::HTML6::HTML6Engine misplacedScriptEngine;
+    if (!expect(misplacedScriptEngine.parseDocument(misplacedScript),
+                "misplaced script sample parses for diagnostics")) return 1;
+    Minuan::HTML6::HTML6Validator misplacedScriptValidator;
+    if (!expect(!misplacedScriptValidator.validateDocumentStructure(
+                    misplacedScriptEngine.getAST()),
+                "HTML6 scripts must be direct children of the system section")) return 1;
+
+    const std::string wrongOrder =
+        "<!DOCTYPE><html><bdy></bdy><hd></hd></html>";
+    Minuan::HTML6::HTML6Engine wrongOrderEngine;
+    if (!expect(wrongOrderEngine.parseDocument(wrongOrder),
+                "reordered HTML6 sections parse for diagnostics")) return 1;
+    Minuan::HTML6::HTML6Validator wrongOrderValidator;
+    if (!expect(!wrongOrderValidator.validateDocumentStructure(
+                    wrongOrderEngine.getAST()),
+                "the system section must precede the visible body")) return 1;
 
     std::cout << "Minuan HTML6 pipeline checks passed.\n";
     return 0;

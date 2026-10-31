@@ -30,9 +30,15 @@ The initial conversion pass handles these aliases:
 - mt to meta, styl to style or external stylesheet link
 - scrpt to script
 
-This is a starter compatibility layer, not a complete HTML6 or CSS Next
-implementation. A JS-squared interpreter and HTML6 server runtime are not
-implemented yet.
+Minuan follows the HTML6 v1.0 document layout and validates section order,
+server placement, cloud/local multiplayer rules, and request-handler paths.
+The `mt` title form sets the browser tab title, and the documented
+`s_ss`/`ss` button attributes compose the sign-in label.
+
+This is still a compatibility layer, not a complete HTML6 language runtime.
+Minuan parses and stores `srv`/`nrq` declarations, but does not host their
+responses as a network backend. CSS Next, JS-squared execution, and Chrono
+multiplayer are not implemented.
 
 ## SimVerse gateway
 

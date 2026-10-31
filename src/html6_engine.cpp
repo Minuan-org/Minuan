@@ -109,7 +109,8 @@ bool HTML6Engine::parseDocument(const std::string& html) {
         }
     }
 
-    ast_.body.root_element = document;
+    ast_.document_root_element = document;
+    ast_.body.root_element.reset();
     std::function<void(const std::shared_ptr<Element>&)> collect =
         [&](const std::shared_ptr<Element>& element) {
             if (!element) return;
@@ -273,6 +274,13 @@ void HTML6Engine::parseHead(const std::shared_ptr<Element>& head) {
             entry.value = attributeValue(*child, "thng",
                                          attributeValue(*child, "content",
                                                         attributeValue(*child, "pblc")));
+            if (child->attributes.count("thng") != 0) {
+                entry.type = "thng";
+            } else if (child->attributes.count("content") != 0) {
+                entry.type = "content";
+            } else if (child->attributes.count("pblc") != 0) {
+                entry.type = "pblc";
+            }
             ast_.head.metadata.push_back(entry);
         } else if (child->tag_name == "styl" || child->tag_name == "style") {
             ast_.head.styles.push_back({
@@ -312,9 +320,11 @@ bool HTML6Engine::executeRuntime() {
 }
 
 void HTML6Engine::registerServer(const ServerDefinition& server) {
+    // Preserve every declaration in the AST so validation can report invalid
+    // definitions instead of silently losing them during parsing.
+    ast_.head.servers.push_back(server);
     if (server.isValid()) {
         servers_.push_back(server);
-        ast_.head.servers.push_back(server);
     } else {
         Utils::logError("Rejected a local HTML6 server with multiplayer enabled");
     }

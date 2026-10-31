@@ -89,6 +89,20 @@ std::string escapeAttribute(const std::string& value) {
     return escaped;
 }
 
+std::string escapeText(const std::string& value) {
+    std::string escaped;
+    escaped.reserve(value.size());
+    for (char ch : value) {
+        switch (ch) {
+            case '&': escaped += "&amp;"; break;
+            case '<': escaped += "&lt;"; break;
+            case '>': escaped += "&gt;"; break;
+            default: escaped += ch; break;
+        }
+    }
+    return escaped;
+}
+
 std::string attributesToString(const std::map<std::string, std::string>& attrs) {
     std::ostringstream out;
     for (const auto& item : attrs) {
@@ -192,10 +206,17 @@ std::string convertMarkup(const std::string& input) {
                 const std::string value = attrs.count("thng") ? attrs.at("thng")
                     : attrs.count("content") ? attrs.at("content")
                     : attrs.count("pblc") ? attrs.at("pblc") : "";
-                output += "<meta";
-                if (!name.empty()) output += " name=\"" + escapeAttribute(name) + "\"";
-                if (!value.empty()) output += " content=\"" + escapeAttribute(value) + "\"";
-                output += ">";
+                const std::string normalizedName = lower(name);
+                if ((normalizedName == "title" || normalizedName == "<title>") &&
+                    !value.empty()) {
+                    // HTML6 uses mt title metadata for the browser tab title.
+                    output += "<title>" + escapeText(value) + "</title>";
+                } else {
+                    output += "<meta";
+                    if (!name.empty()) output += " name=\"" + escapeAttribute(name) + "\"";
+                    if (!value.empty()) output += " content=\"" + escapeAttribute(value) + "\"";
+                    output += ">";
+                }
             }
             pos = tagEnd + 1;
             continue;
@@ -219,6 +240,33 @@ std::string convertMarkup(const std::string& input) {
                     const std::size_t closeEnd = input.find('>', close);
                     pos = closeEnd == std::string::npos ? input.size() : closeEnd + 1;
                 }
+            }
+            continue;
+        }
+
+        if (!closing && !selfClosing && originalName == "bttn" &&
+            attrs.count("s_ss") != 0 && attrs.at("s_ss") == "true" &&
+            attrs.count("ss") != 0 && !attrs.at("ss").empty()) {
+            const std::string loweredInput = lower(input);
+            const std::size_t closeStart =
+                findClosingTag(loweredInput, "bttn", tagEnd + 1);
+            output += "<button" + attributesToString(attrs) + ">";
+            if (closeStart != std::string::npos) {
+                const std::string label = input.substr(
+                    tagEnd + 1, closeStart - tagEnd - 1);
+                output += label;
+                if (!label.empty() &&
+                    !std::isspace(static_cast<unsigned char>(label.back()))) {
+                    output += " ";
+                }
+                output += escapeText(attrs.at("ss"));
+                output += "</button>";
+                const std::size_t closeEnd = input.find('>', closeStart);
+                pos = closeEnd == std::string::npos ? input.size() : closeEnd + 1;
+            } else {
+                output.append(input, tagEnd + 1, std::string::npos);
+                output += " " + escapeText(attrs.at("ss")) + "</button>";
+                pos = input.size();
             }
             continue;
         }
