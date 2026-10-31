@@ -92,3 +92,7 @@ if(BUILD_TESTING)
 endif()
 
 install(TARGETS MinuanBrowser RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(
+    FILES "${PROJECT_SOURCE_DIR}/browser/websites.json"
+    DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
