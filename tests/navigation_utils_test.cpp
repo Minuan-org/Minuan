@@ -62,6 +62,18 @@ int main() {
                          allowed),
                      "plain HTTP is blocked");
     passed &= expect(!NavigationUtils::isAllowedHttpsUrl(
+                         QUrl(QStringLiteral("https://visitor:secret@github.com")),
+                         allowed),
+                     "approved hosts cannot be reached with hidden URL credentials");
+    passed &= expect(!NavigationUtils::isAllowedHttpsUrl(
+                         QUrl(QStringLiteral("https://github.com:8443")),
+                         allowed),
+                     "non-standard HTTPS ports are blocked");
+    passed &= expect(NavigationUtils::isAllowedHttpsUrl(
+                         QUrl(QStringLiteral("https://github.com:443")),
+                         allowed),
+                     "the standard HTTPS port is allowed");
+    passed &= expect(!NavigationUtils::isAllowedHttpsUrl(
                          QUrl(QStringLiteral("https://unlisted.example")),
                          allowed),
                      "unlisted hosts are blocked");
