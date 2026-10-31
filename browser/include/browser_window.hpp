@@ -1,33 +1,56 @@
-// browser/include/browser_window.hpp
 #pragma once
 
-#include <string>
-#include <memory>
-#include <fstream>
-#include <nlohmann/json.hpp>
-#include "sunay.hpp"   // Sunay lives in its own repo, Minuan depends on it
+#include <QHash>
+#include <QMainWindow>
+#include <QSet>
+#include <QUrl>
 
-class BrowserWindow {
+class QAction;
+class QLabel;
+class QLineEdit;
+class QProgressBar;
+class QTabWidget;
+class QWidget;
+class QWebEngineView;
+
+namespace Sunay {
+class RenderingPipeline;
+}
+
+class BrowserWindow final : public QMainWindow {
 public:
     BrowserWindow();
-    ~BrowserWindow();
-
-    bool create();
-    void show();
-    void run(); // Run the browser and display first URL
-    void navigateToHtml6(const std::string& path);
-    bool loadWebsites();
+    ~BrowserWindow() override = default;
 
 private:
-    bool initWebView();
-    void loadHtml5IntoWebView(const std::string& html5);
+    struct TabRuntime {
+        QWebEngineView* view = nullptr;
+        Sunay::RenderingPipeline* renderer = nullptr;
+    };
 
-    std::string first_url_; // first URL from websites.json
+    void buildUi();
+    void createTab(const QUrl& initialUrl = QUrl(QStringLiteral("about:blank")));
+    void closeTab(int index);
+    void navigateAddress();
+    void openLocalHtml6();
+    void loadHtml6File(const QString& path);
+    void updateCurrentTab();
+    void updateNavigationActions();
+    bool loadWebsites();
+    bool isAllowedUrl(const QUrl& url) const;
+    bool isAllowedHost(const QString& host) const;
+    TabRuntime* currentTab();
 
-    void* native_window_handle_ = nullptr;
-    void* webview_ = nullptr;
+    QTabWidget* tabs_ = nullptr;
+    QLineEdit* addressBar_ = nullptr;
+    QLabel* statusLabel_ = nullptr;
+    QProgressBar* progressBar_ = nullptr;
+    QAction* backAction_ = nullptr;
+    QAction* forwardAction_ = nullptr;
+    QAction* reloadAction_ = nullptr;
+    QAction* stopAction_ = nullptr;
 
-    // Sunay browser engine (browser renderer)
-    std::unique_ptr<Sunay::Engine> sunay_;
-    Sunay::BrowserUIState ui_state_;
+    QSet<QString> allowedHosts_;
+    QUrl homeUrl_;
+    QHash<QWidget*, TabRuntime> tabRuntimes_;
 };

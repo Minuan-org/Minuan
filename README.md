@@ -1,43 +1,60 @@
-# 🌟 Minuan - C++ Browser for SimVerse
+# Minuan
 
-> A kid-powered browser built **by kids, for kids** ages 5-10
-> 
-> **Supports HTML6, CSS Next, and JS²**
+Minuan is a C++ browser for SimVerse. It uses Sunay as its embedded page
+renderer and Qt WebEngine (Chromium) for standards-based web rendering.
 
-## 🎯 What is Minuan?
+## Architecture
 
-**Minuan** is a **simple, safe, and powerful browser** written in **C++17** specifically designed for children to explore, create, and build within the **SimVerse universe**.
+- Minuan owns the browser window, tabs, address bar, configured HTTPS
+  host allowlist, local HTML6 opening and document conversion.
+- HTML6Engine reads the document and builds a lightweight element tree.
+- DOMProcessor converts supported HTML6 shorthand markup into HTML.
+- Sunay embeds Qt WebEngine in each Minuan tab and exposes document loading,
+  progress, completion and stop operations.
+- Chromium performs HTML/CSS parsing, layout, JavaScript execution, painting
+  and compositing.
 
-### Built on HTML6
-Minuan uses the **HTML6 specification** created by @ThatBobo, which includes:
-- ✨ HTML6 - New simplified markup language
-- 🎨 CSS Next - Modern styling
-- 💻 JS² v2.0 - Interactive scripting
-- 🖥️ Integrated backend servers (cloud + multiplayer support)
+Sunay is a library dependency of Minuan, not a separate browser.
 
-### Created for SimVerse
-SimVerse is a kid-powered company created by @ThatBobo. It brings together:
-- 🎮 A Real-Life 3D Simulator
-- 🛠️ Tools for everyone from babies to grandparents
-- 🌐 A new kind of internet (HTML6, CSS Next, JS²)
-- 🛡️ A safe creative space for kids
+## Current HTML6 compatibility
 
-**Learn more:** See [SIMVERSE_PETITION.md](SIMVERSE_PETITION.md)
+The initial conversion pass handles these aliases:
 
----
+- hd to head, bdy to body
+- bttn to button, dv to div, nv to nav
+- frm to form, lbl to label, txt to input
+- mt to meta, styl to style or external stylesheet link
+- scrpt to script
 
-## ✨ Features
+This is a starter compatibility layer, not a complete HTML6 or CSS Next
+implementation. A JS-squared interpreter and HTML6 server runtime are not
+implemented yet.
 
-- 🌈 **Colorful, Kid-Friendly UI** - Built with native C++ widgets
-- 📄 **HTML6 Support** - Native HTML6 parser and engine
-- 🎨 **CSS Next Support** - Modern CSS parsing and rendering
-- 💻 **JS² v2.0 Integration** - Interactive script execution
-- 🖥️ **Server Support** - Cloud and local backend servers
-- 🌐 **Multi-Platform** - Windows, macOS, Linux
-- 🔒 **Safe Browsing** - Only SimVerse whitelisted URLs
-- 📑 **Tabbed Browsing** - Open multiple pages simultaneously
-- 🔖 **Bookmarks** - Save favorite SimVerse pages
-- 📜 **History** - Track visited pages with timestamps
-- ⚙️ **Parental Controls** - Safe for kids, configurable by parents
-- ⚡ **Fast & Lightweight** - Efficient C++ implementation
-- 🔐 **Content Security** - URL validation and filtering
+## Allowed websites
+
+Edit browser/websites.json to define HTTPS sites Minuan may navigate to.
+The first valid entry becomes the home page. Top-level and frame navigation
+to hosts outside this list is blocked; subdomains of a configured host are
+accepted. Plain HTTP navigation is blocked.
+
+## Requirements
+
+- CMake 3.20 or newer
+- C++20 compiler
+- Qt 6 or Qt 5 with Core, Widgets and WebEngineWidgets
+- Git, to fetch the pinned Sunay dependency
+
+## Build
+
+    cmake -S . -B out/build
+    cmake --build out/build --config Release
+
+On Windows, build/build.bat configures Visual Studio 2022 and builds the
+Release executable. The script runs windeployqt when it is available so the
+Qt WebEngine runtime files can be copied next to the executable.
+
+## Open a local document
+
+Launch Minuan and choose Open HTML6. Minuan reads the selected file,
+converts supported shorthand markup to HTML, and sends the result to Sunay
+with the document's folder as its resource base URL.

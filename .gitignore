@@ -1,0 +1,26 @@
+# CMake build output
+/out/
+/build/CMakeCache.txt
+/build/CMakeFiles/
+/build/Testing/
+/cmake-build-*/
+
+# Compiled binaries and objects
+*.o
+*.obj
+*.a
+*.lib
+*.dll
+*.so
+*.dylib
+*.exe
+*.pdb
+*.ilk
+*.app
+
+# IDE and local settings
+.vs/
+.idea/
+*.user
+*.suo
+*.log

@@ -1,5 +1,5 @@
 @echo off
-REM Minuan Browser - Windows Build Script
+setlocal
 
 echo.
 echo ====================================
@@ -7,46 +7,54 @@ echo   Minuan Browser Build (Windows)
 echo ====================================
 echo.
 
-REM Check if CMake is installed
-cmake --version >nul 2>&1
+where cmake >nul 2>&1
 if errorlevel 1 (
-    echo ERROR: CMake is not installed or not in PATH
-    echo Please install CMake from: https://cmake.org/download/
-    pause
+    echo ERROR: CMake was not found in PATH.
     exit /b 1
 )
 
-REM Create build directory
-if not exist build (
-    echo Creating build directory...
-    mkdir build
-)
+set "ROOT=%~dp0.."
+for %%I in ("%ROOT%") do set "ROOT=%%~fI"
+set "BUILD_DIR=%ROOT%\out\build"
 
-cd build
+echo Project: %ROOT%
+echo Build:   %BUILD_DIR%
+echo.
 
-REM Run CMake
-echo Configuring with CMake...
-cmake .. -G "Visual Studio 16 2019"
+cmake -S "%ROOT%" -B "%BUILD_DIR%" -G "Visual Studio 17 2022" -A x64
 if errorlevel 1 (
-    echo ERROR: CMake configuration failed
-    pause
+    echo ERROR: CMake configuration failed.
+    echo Check that Qt 6 with the WebEngine module is installed and CMAKE_PREFIX_PATH is set.
     exit /b 1
 )
 
-REM Build
-echo Building Minuan Browser...
-cmake --build . --config Release
+cmake --build "%BUILD_DIR%" --config Release --parallel
 if errorlevel 1 (
-    echo ERROR: Build failed
-    pause
+    echo ERROR: Minuan build failed.
     exit /b 1
+)
+
+ctest --test-dir "%BUILD_DIR%" -C Release --output-on-failure
+if errorlevel 1 (
+    echo ERROR: Minuan tests failed.
+    exit /b 1
+)
+
+set "APP=%BUILD_DIR%\bin\Minuan.exe"
+if not exist "%APP%" (
+    echo ERROR: Expected executable was not produced: %APP%
+    exit /b 1
+)
+
+where windeployqt >nul 2>&1
+if not errorlevel 1 (
+    windeployqt --no-translations "%APP%"
 )
 
 echo.
 echo ====================================
-echo   Build Complete!
+echo   Build Complete
 echo ====================================
+echo Executable: %APP%
 echo.
-echo Executable: bin\minuan.exe
-echo.
-pause
+endlocal

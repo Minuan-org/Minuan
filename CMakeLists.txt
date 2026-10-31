@@ -1,77 +1,94 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.20)
 
 project(MinuanBrowser
-    VERSION 1.0
-    DESCRIPTION "Minuan - C++ Browser for SimVerse"
+    VERSION 1.1.0
+    DESCRIPTION "Minuan - a SimVerse browser using the Sunay rendering pipeline"
     LANGUAGES CXX
 )
 
-# -----------------------------
-# C++ Standard
-# -----------------------------
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# -----------------------------
-# Qt Core Settings
-# -----------------------------
+set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-# -----------------------------
-# Find Qt Packages
-# -----------------------------
-find_package(Qt6 COMPONENTS Widgets WebEngineWidgets QUIET)
-if (NOT Qt6_FOUND)
-    find_package(Qt5 COMPONENTS Widgets WebEngineWidgets REQUIRED)
-endif()
+include(FetchContent)
+include(CTest)
+include(GNUInstallDirs)
 
-# -----------------------------
-# Source Files
-# -----------------------------
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Widgets WebEngineWidgets)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Widgets WebEngineWidgets)
+
+FetchContent_Declare(
+    Sunay
+    GIT_REPOSITORY https://github.com/Minuan-org/Sunay.git
+    GIT_TAG 942000ef382de787fd067782efac998f8d00c5bf
+    GIT_SHALLOW FALSE
+)
+FetchContent_MakeAvailable(Sunay)
+
 set(MINUAN_SOURCES
-    src/main.cpp
+    browser/src/main.cpp
+    browser/src/browser_window.cpp
     src/html6_engine.cpp
     src/dom_processor.cpp
     src/html6_validator.cpp
     src/utils.cpp
 )
 
-# -----------------------------
-# Create Executable
-# -----------------------------
 add_executable(MinuanBrowser ${MINUAN_SOURCES})
-
-# -----------------------------
-# Include Directories
-# -----------------------------
 target_include_directories(MinuanBrowser PRIVATE
     ${PROJECT_SOURCE_DIR}/include
-    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/browser/include
+)
+target_link_libraries(MinuanBrowser PRIVATE
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::WebEngineWidgets
+    Sunay::Sunay
 )
 
-# -----------------------------
-# Link Qt Libraries
-# -----------------------------
-if (Qt6_FOUND)
-    target_link_libraries(MinuanBrowser PRIVATE
-        Qt6::Widgets
-        Qt6::WebEngineWidgets
-    )
+set_target_properties(MinuanBrowser PROPERTIES
+    OUTPUT_NAME "Minuan"
+    CXX_STANDARD 20
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+    RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/bin"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${PROJECT_BINARY_DIR}/bin"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${PROJECT_BINARY_DIR}/bin"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${PROJECT_BINARY_DIR}/bin"
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${PROJECT_BINARY_DIR}/bin"
+)
+
+if(MSVC)
+    target_compile_options(MinuanBrowser PRIVATE /W4 /permissive-)
 else()
-    target_link_libraries(MinuanBrowser PRIVATE
-        Qt5::Widgets
-        Qt5::WebEngineWidgets
-    )
+    target_compile_options(MinuanBrowser PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
-# -----------------------------
-# Post-Build Assets
-# -----------------------------
-if (EXISTS "${CMAKE_SOURCE_DIR}/websites.json")
-    add_custom_command(TARGET MinuanBrowser POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_SOURCE_DIR}/websites.json $<TARGET_FILE_DIR:MinuanBrowser>
+add_custom_command(TARGET MinuanBrowser POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${PROJECT_SOURCE_DIR}/browser/websites.json"
+        "$<TARGET_FILE_DIR:MinuanBrowser>/websites.json"
+    VERBATIM
+)
+
+if(BUILD_TESTING)
+    add_executable(MinuanHtml6Tests
+        tests/html6_pipeline_test.cpp
+        src/html6_engine.cpp
+        src/dom_processor.cpp
+        src/html6_validator.cpp
+        src/utils.cpp
     )
+    target_include_directories(MinuanHtml6Tests PRIVATE ${PROJECT_SOURCE_DIR}/include)
+    if(MSVC)
+        target_compile_options(MinuanHtml6Tests PRIVATE /W4 /permissive-)
+    else()
+        target_compile_options(MinuanHtml6Tests PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+    add_test(NAME MinuanHtml6Pipeline COMMAND MinuanHtml6Tests)
 endif()
+
+install(TARGETS MinuanBrowser RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

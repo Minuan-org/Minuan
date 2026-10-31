@@ -1,0 +1,35 @@
+name: Minuan Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.8.3"
+          host: windows
+          target: desktop
+          arch: win64_msvc2022_64
+          modules: "qtwebengine"
+          cache: true
+
+      - name: Configure
+        run: cmake -S . -B out/build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build out/build --config Release --parallel
+
+      - name: Test HTML6 conversion
+        run: ctest --test-dir out/build -C Release --output-on-failure
