@@ -163,6 +163,17 @@ int main() {
     if (!expect(!misplacedValidator.validateDocumentStructure(misplacedEngine.getAST()),
                 "server definitions inside the visible body are rejected")) return 1;
 
+    const std::string misplacedScript =
+        "<!DOCTYPE><html><hd></hd><bdy></bdy>"
+        "<scrpt src=\"outside.js\"></scrpt></html>";
+    Minuan::HTML6::HTML6Engine misplacedScriptEngine;
+    if (!expect(misplacedScriptEngine.parseDocument(misplacedScript),
+                "misplaced script sample parses for diagnostics")) return 1;
+    Minuan::HTML6::HTML6Validator misplacedScriptValidator;
+    if (!expect(!misplacedScriptValidator.validateDocumentStructure(
+                    misplacedScriptEngine.getAST()),
+                "HTML6 scripts must be direct children of the system section")) return 1;
+
     const std::string wrongOrder =
         "<!DOCTYPE><html><bdy></bdy><hd></hd></html>";
     Minuan::HTML6::HTML6Engine wrongOrderEngine;
