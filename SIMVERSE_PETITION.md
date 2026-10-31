@@ -1,6 +1,6 @@
 # SimVerse Petition for Children (Ages 5–10)
 
-SimVerse is a kid-powered company created by Commander AbdulSamad (age 8).
+SimVerse is a kid-powered company created by @ThatBobo.
 It is made for children who love building, imagining, and creating new ideas.
 
 SimVerse is not just one idea. It is a whole universe of ideas, including:
