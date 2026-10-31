@@ -43,11 +43,11 @@ Choose **Open a local project** on the home page to open an HTML6 or HTML file.
 ## Allowed websites
 
 Edit browser/websites.json to define HTTPS sites Minuan may navigate to.
-The first valid entry is the configured search provider. Google UK and
-Google.com are included by default. Plain words entered in the address bar are
-searched with Google. Top-level and frame navigation to hosts outside this
-list is blocked; subdomains of a configured host are accepted. Plain HTTP
-navigation is blocked. Add a domain to this file before Minuan can open it.
+Google UK is used for searches. Google UK, Google.com and GitHub are
+included by default. Plain words entered in the address bar are searched with
+Google. Top-level and frame navigation to hosts outside this list is blocked;
+subdomains of a configured host are accepted. Plain HTTP navigation is
+blocked. Add a domain to this file before Minuan can open it.
 
 ## Requirements
 
