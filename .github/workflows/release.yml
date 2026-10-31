@@ -50,6 +50,20 @@ jobs:
       - name: Install Minuan
         run: cmake --install out/build --config Release --prefix package
 
+      - name: Verify installed package files
+        shell: pwsh
+        run: |
+          $requiredFiles = @(
+            "package/bin/Minuan.exe",
+            "package/bin/websites.json",
+            "package/bin/home.html"
+          )
+          foreach ($file in $requiredFiles) {
+            if (!(Test-Path $file)) {
+              throw "Required installed file is missing: $file"
+            }
+          }
+
       - name: Deploy Qt runtime and browser configuration
         shell: pwsh
         run: |
