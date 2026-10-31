@@ -2,6 +2,7 @@
 
 #include "dom_processor.hpp"
 #include "html6_engine.hpp"
+#include "html6_validator.hpp"
 #include "navigation_utils.hpp"
 #include "sunay/rendering_pipeline.hpp"
 #include "utils.hpp"
@@ -20,7 +21,9 @@
 #include <QLineEdit>
 #include <QMenu>
 #include <QMenuBar>
+#include <QMessageBox>
 #include <QSettings>
+#include <QStringList>
 #include <QSignalBlocker>
 #include <QStandardPaths>
 #include <QProgressBar>
@@ -732,6 +735,31 @@ void BrowserWindow::loadHtml6File(const QString& path) {
         return;
     }
 
+    Minuan::HTML6::HTML6Validator validator;
+    if (!validator.validateDocumentStructure(engine.getAST())) {
+        QStringList messages;
+        for (const auto& error : validator.getErrors()) {
+            if (error.severity == "error" && messages.size() < 5) {
+                messages.push_back(QString::fromStdString(error.message));
+            }
+        }
+        if (validator.getErrorCount() > messages.size()) {
+            messages.push_back(tr("And %1 more error(s).")
+                                   .arg(validator.getErrorCount() - messages.size()));
+        }
+        statusLabel_->setText(
+            tr("HTML6 validation failed: %1 error(s).")
+                .arg(validator.getErrorCount()));
+        QMessageBox::warning(
+            this, tr("This HTML6 document needs fixing"),
+            messages.isEmpty()
+                ? tr("The document did not pass HTML6 validation.")
+                : messages.join(QLatin1Char('\n')));
+        return;
+    }
+
+    const int validationWarnings = validator.getWarningCount();
+
     Minuan::HTML6::DOMProcessor processor;
     const std::string html = processor.generateHTML(engine.getAST());
     if (html.empty()) {
@@ -756,7 +784,9 @@ void BrowserWindow::loadHtml6File(const QString& path) {
     const int index = tabs_->currentIndex();
     if (index >= 0) tabs_->setTabText(index, QFileInfo(path).fileName().left(32));
     addressBar_->setText(tab->displayAddress);
-    statusLabel_->setText(tr("HTML6 converted and sent to Sunay."));
+    statusLabel_->setText(validationWarnings == 0
+        ? tr("HTML6 checked, converted and sent to Sunay.")
+        : tr("HTML6 converted with %1 warning(s).").arg(validationWarnings));
 }
 
 void BrowserWindow::updateCurrentTab() {

@@ -2,6 +2,7 @@
 
 #include <QHash>
 #include <QMainWindow>
+#include <QString>
 #include <QSet>
 #include <QUrl>
 
