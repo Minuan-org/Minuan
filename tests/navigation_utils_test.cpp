@@ -77,6 +77,43 @@ int main() {
                          QUrl(QStringLiteral("https://unlisted.example")),
                          allowed),
                      "unlisted hosts are blocked");
+    passed &= expect(NavigationUtils::isAllowedNavigationUrl(
+                         QUrl(QStringLiteral("https://github.com")),
+                         allowed, true),
+                     "approved top-level websites are allowed");
+    passed &= expect(!NavigationUtils::isAllowedNavigationUrl(
+                         QUrl(QStringLiteral("https://example.org")),
+                         allowed, true),
+                     "unlisted top-level websites remain blocked");
+    passed &= expect(NavigationUtils::isAllowedNavigationUrl(
+                         QUrl(QStringLiteral("https://accounts.example.org/sign-in")),
+                         allowed, false),
+                     "HTTPS embedded frames can use a separate origin");
+    passed &= expect(NavigationUtils::isAllowedNavigationUrl(
+                         QUrl(QStringLiteral("about:blank")),
+                         allowed, false),
+                     "blank embedded frames are allowed");
+    passed &= expect(NavigationUtils::isAllowedNavigationUrl(
+                         QUrl(QStringLiteral("about:srcdoc")),
+                         allowed, false),
+                     "srcdoc embedded frames are allowed");
+    passed &= expect(NavigationUtils::isAllowedNavigationUrl(
+                         QUrl(QStringLiteral("blob:https://github.com/1234")),
+                         allowed, false),
+                     "blob documents are allowed inside frames");
+    passed &= expect(NavigationUtils::isAllowedNavigationUrl(
+                         QUrl(QStringLiteral("data:text/html,embedded")),
+                         allowed, false),
+                     "data documents are allowed inside frames");
+    passed &= expect(!NavigationUtils::isAllowedNavigationUrl(
+                         QUrl(QStringLiteral("http://accounts.example.org/sign-in")),
+                         allowed, false),
+                     "HTTP embedded frames remain blocked");
+    passed &= expect(!NavigationUtils::isAllowedNavigationUrl(
+                         QUrl(QStringLiteral("https://example.org")),
+                         allowed, true),
+                     "unlisted websites cannot replace the top-level page");
+
     passed &= expect(NavigationUtils::cleanHost(
                          QStringLiteral(" WWW.Google.co.uk. ")) ==
                          QStringLiteral("google.co.uk"),
