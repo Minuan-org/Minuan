@@ -85,17 +85,18 @@ protected:
             return false;
         }
 
-        if (url.scheme() == QStringLiteral("about") &&
-            url.toString() == QStringLiteral("about:blank")) {
-            return true;
-        }
-
-        if (NavigationUtils::isAllowedHttpsUrl(url, allowedHosts_)) {
+        if (NavigationUtils::isAllowedNavigationUrl(
+                url, allowedHosts_, isMainFrame)) {
             return QWebEnginePage::acceptNavigationRequest(
                 url, type, isMainFrame);
         }
 
-        if (blockedHandler_) blockedHandler_(url);
+        if (isMainFrame && blockedHandler_) {
+            blockedHandler_(url);
+        } else {
+            Utils::logWarning("Blocked embedded navigation: " +
+                              url.toDisplayString().toStdString());
+        }
         return false;
     }
 
@@ -515,6 +516,24 @@ void BrowserWindow::createTab(const QUrl& initialUrl) {
         const int index = tabs_->indexOf(tabWidget);
         if (index >= 0) closeTab(index);
     });
+
+    connect(page, &QWebEnginePage::renderProcessTerminated,
+            this, [this, tabWidget](
+                QWebEnginePage::RenderProcessTerminationStatus terminationStatus,
+                int exitCode) {
+                const QString message =
+                    tr("The Chromium page process stopped (exit code %1, status %2). "
+                       "Try reloading this page.")
+                        .arg(exitCode)
+                        .arg(static_cast<int>(terminationStatus));
+                Utils::logError(message.toStdString());
+                if (tabs_->indexOf(tabWidget) >= 0 &&
+                    tabs_->currentWidget() == tabWidget) {
+                    statusLabel_->setText(message);
+                    progressBar_->hide();
+                    stopAction_->setEnabled(false);
+                }
+            });
 
     connect(renderer, &Sunay::RenderingPipeline::renderingStarted,
             this, [this, tabWidget]() {

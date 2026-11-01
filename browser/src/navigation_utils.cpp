@@ -87,4 +87,42 @@ bool isAllowedHttpsUrl(const QUrl& url,
     return isAllowedHost(url.host(), allowedHosts);
 }
 
+bool isAllowedNavigationUrl(const QUrl& url,
+                            const QSet<QString>& allowedHosts,
+                            bool isMainFrame) {
+    if (!url.isValid() || url.isEmpty()) {
+        return false;
+    }
+
+    const QString scheme = url.scheme().toLower();
+
+    // Empty documents and srcdoc frames are browser-internal HTML documents.
+    if (scheme == QStringLiteral("about")) {
+        const QString address = url.toString().toLower();
+        return address == QStringLiteral("about:blank") ||
+               (!isMainFrame && address == QStringLiteral("about:srcdoc"));
+    }
+
+    // Data/blob documents are commonly used by modern sites inside frames.
+    // Keep them confined to subframes; they cannot replace the top-level page.
+    if (!isMainFrame &&
+        (scheme == QStringLiteral("data") ||
+         scheme == QStringLiteral("blob"))) {
+        return true;
+    }
+
+    // The address bar remains restricted to approved HTTPS websites. HTTPS
+    // subframes may use other origins for sign-in, embedded content and app UI.
+    if (!isMainFrame && scheme == QStringLiteral("https")) {
+        if (url.host().isEmpty() ||
+            url.authority().contains(QLatin1Char('@'))) {
+            return false;
+        }
+        const int port = url.port(-1);
+        return port == -1 || port == 443;
+    }
+
+    return isAllowedHttpsUrl(url, allowedHosts);
+}
+
 } // namespace NavigationUtils
